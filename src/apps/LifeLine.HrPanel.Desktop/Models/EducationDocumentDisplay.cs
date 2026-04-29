@@ -31,7 +31,9 @@ namespace LifeLine.HrPanel.Desktop.Models
             _qualificationAwardedName = model.QualificationAwardedName;
             _specialtyName = model.SpecialtyName;
             _programName = model.ProgramName;
-            _totalHours = TimeSpan.Parse(model.TotalHours!);
+            //_totalHours = TimeSpan.Parse(model.TotalHours!);
+            TimeSpan.TryParse(model.TotalHours, out var resultTimeSpanParse);
+            _totalHours = resultTimeSpanParse;
             FilePath = filePath;
             SaveStatus = saveStatus;
 
