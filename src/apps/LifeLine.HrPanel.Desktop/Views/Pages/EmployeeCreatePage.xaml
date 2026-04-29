@@ -155,7 +155,7 @@
                           IsEnabled="{Binding Steps, Converter={StaticResource EmployeeCreationsToBoolConverter}, ConverterParameter={x:Static enum:EmployeeCreationSteps.Specialties}}" 
                           IsExpanded="{Binding Steps, Converter={StaticResource EmployeeCreationsToBoolConverter}, ConverterParameter={x:Static enum:EmployeeCreationSteps.Specialties}}"   
                           d:IsExpanded="True" Margin="5" Style="{StaticResource ModernExpanderStyle}">
-                    <hrus:Specialties/>
+                    <hrus:Specialties Action="CreateStep"/>
                 </Expander>
 
                 <Expander Header="Назначение / Контракт" 

@@ -214,7 +214,7 @@
 
                     <Expander Header="Специальности" IsExpanded="True"
                               Margin="5" Style="{StaticResource ModernExpanderStyle}">
-                        <hrus:Specialties/>
+                        <hrus:Specialties Action="Create"/>
                     </Expander>
 
                     <Expander Header="Назначение / Контракт" IsExpanded="True"

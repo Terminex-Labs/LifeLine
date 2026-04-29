@@ -101,11 +101,20 @@
                 <Button Content="Добавить локально" Height="40"
                         HorizontalAlignment="Stretch" VerticalAlignment="Center"
                         Command="{Binding Specialties.AddEmployeeSpecialtyCommand}"
+                        Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.CreateStep}, UpdateSourceTrigger=PropertyChanged}"
                         Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
 
                 <Button Content="Продолжить" Height="40"
                         HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                        Command="{Binding ExecuteStepCommand}" CommandParameter="{x:Static enum:EmployeeCreationSteps.AssigmentsContracts}"
+                        Command="{Binding ExecuteStepCommand}" 
+                        CommandParameter="{x:Static enum:EmployeeCreationSteps.AssigmentsContracts}"
+                        Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.CreateStep}, UpdateSourceTrigger=PropertyChanged}"
+                        Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+
+                <Button Content="Сохранить" Height="40"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                        Command="{Binding CreateEmployeeSpecialtyCommand}" 
+                        Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Create}, UpdateSourceTrigger=PropertyChanged}"
                         Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
             </StackPanel>
         </Border>
