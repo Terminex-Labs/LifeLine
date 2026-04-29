@@ -94,7 +94,7 @@
         <Border Grid.Column="0" Background="{StaticResource App.SecondColor}" CornerRadius="6" Margin="0 0 5 0">
             <Border Margin="5" Background="{StaticResource App.MainColor}" CornerRadius="6" BorderBrush="#386FD6" BorderThickness="2">
                 <DataGrid ItemsSource="{Binding WorkPermits.WorkPermitsView}" 
-                          SelectedItem="{Binding SelectedWorkPermit}"
+                          SelectedItem="{Binding WorkPermits.SelectedWorkPermit}"
                           AutoGenerateColumns="False" 
                           CanUserAddRows="False"
                           HorizontalContentAlignment="Stretch" 
@@ -256,6 +256,7 @@
 
                             <ListView x:Name="ItemsListView"
                                       ItemsSource="{Binding WorkPermits.PendingFilePaths}"
+                                      SelectedItem="{Binding WorkPermits.SelectedWorkPermit}"
                                       d:ItemsSource="{d:SampleData ItemCount=3}"
                                       Background="#1E1E1E"
                                       BorderThickness="0"
@@ -404,7 +405,21 @@
 
                     <Button Grid.Row="2" Content="Продолжить" Height="40"
                             HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                            Command="{Binding ExecuteStepCommand}" CommandParameter="{x:Static enum:EmployeeCreationSteps.Specialties}"
+                            Command="{Binding ExecuteStepCommand}" 
+                            CommandParameter="{x:Static enum:EmployeeCreationSteps.Specialties}"
+                            Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.CreateStep}, UpdateSourceTrigger=PropertyChanged}"
+                            Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+
+                    <Button Grid.Row="2" Content="Сохранить" Height="40"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                            Command="{Binding CreateWorkPermitCommand}"
+                            Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Create}, UpdateSourceTrigger=PropertyChanged}"
+                            Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+
+                    <Button Grid.Row="2" Content="Обновить" Height="40"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                            Command="{Binding UpdateWorkPermitCommand}"
+                            Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Update}, UpdateSourceTrigger=PropertyChanged}"
                             Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
                 </Grid>
             </Border>

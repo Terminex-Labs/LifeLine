@@ -46,7 +46,7 @@ namespace LifeLine.HrPanel.Desktop.Models
         }
         public void SetSaveStatus(SaveStatus saveStatus) => SaveStatus = saveStatus; 
 
-        public string Id => _model.Id;
+        public string WorkPermitId => _model.Id;
         public string EmployeeId => _model.EmployeeId;
         public string PermitTypeId => _model.PermitTypeId;
         public string AdmissionStatusId => _model.AdmissionStatusId;

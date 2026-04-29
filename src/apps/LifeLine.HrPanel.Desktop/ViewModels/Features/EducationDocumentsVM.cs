@@ -171,7 +171,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             QualificationAwardedName = value.QualificationAwardedName;
             SpecialtyName = value.SpecialtyName;
             ProgramName = value.ProgramName;
-            TotalHours = value.TotalHours;
+            TimeSpan.TryParse(value.TotalHours.ToString(), out var resultTimeSpanParse);
+            TotalHours = resultTimeSpanParse;
             EducationLevel = value.EducationLevel;
             DocumentType = value.DocumentType;
         }

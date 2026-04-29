@@ -209,7 +209,7 @@
 
                     <Expander Header="Аккредитация / Сертификаты" IsExpanded="True"
                               Margin="5" Style="{StaticResource ModernExpanderStyle}">
-                        <hrus:WorkPermits/>
+                        <hrus:WorkPermits Action="{Binding ActionProp}"/>
                     </Expander>
 
                     <Expander Header="Специальности" IsExpanded="True"

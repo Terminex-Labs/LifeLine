@@ -166,7 +166,26 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         public WorkPermitDisplay SelectedWorkPermit
         {
             get => _selectedWorkPermit;
-            set => SetProperty(ref _selectedWorkPermit, value);
+            set
+            {
+                SetProp(value);
+
+                SetProperty(ref _selectedWorkPermit, value);
+            }
+        }
+
+        private void SetProp(WorkPermitDisplay value)
+        {
+            WorkPermitName = value.WorkPermitName;
+            DocumentSeries = value.DocumentSeries;
+            WorkPermitNumber = value.WorkPermitNumber;
+            ProtocolNumber = value.ProtocolNumber;
+            SpecialtyName = value.SpecialtyName;
+            IssuingAuthority = value.IssuingAuthority;
+            IssueDate = value.IssueDate;
+            ExpiryDate = value.ExpiryDate;
+            PermitType = value.PermitType;
+            AdmissionStatus = value.AdmissionStatus;
         }
 
         public ObservableCollection<PendingFileItem> PendingFilePaths { get; private set; } = [];

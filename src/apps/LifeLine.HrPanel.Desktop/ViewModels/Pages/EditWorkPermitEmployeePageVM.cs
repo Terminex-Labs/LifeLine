@@ -204,7 +204,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
                 var resultUpdate = await _workPermitApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).UpdateWorkPermitAsync
                 (
-                    Guid.Parse(WorkPermitDisplay.Id),
+                    Guid.Parse(WorkPermitDisplay.WorkPermitId),
                     new UpdateWorkPermitRequest
                         (
                             WorkPermitDisplay.WorkPermitName,

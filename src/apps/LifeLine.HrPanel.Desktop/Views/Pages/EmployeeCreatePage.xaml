@@ -148,7 +148,7 @@
                           IsEnabled="{Binding Steps, Converter={StaticResource EmployeeCreationsToBoolConverter}, ConverterParameter={x:Static enum:EmployeeCreationSteps.WorkPermits}}" 
                           IsExpanded="{Binding Steps, Converter={StaticResource EmployeeCreationsToBoolConverter}, ConverterParameter={x:Static enum:EmployeeCreationSteps.WorkPermits}}"   
                           d:IsExpanded="True" Margin="5" Style="{StaticResource ModernExpanderStyle}">
-                    <hrus:WorkPermits/>
+                    <hrus:WorkPermits Action="CreateStep"/>
                 </Expander>
 
                 <Expander Header="Специальности" 
