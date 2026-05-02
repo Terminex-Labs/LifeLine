@@ -9,7 +9,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         public SpecialtiesVM()
         {
             AddEmployeeSpecialtyCommand = new RelayCommand(Execute_AddEmployeeSpecialtyCommand, CanExecute_AddEmployeeSpecialtyCommand);
-            DeleteEmployeeSpecialtyCommand = new RelayCommand<SpecialtyDisplay>(Execute_DeleteEmployeeSpecialtyCommand);
         }
 
         public ObservableCollection<SpecialtyDisplay> LocalEmployeeSpecialties { get; private init; } = [];
@@ -21,10 +20,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             SelectedSpecialty = null!;
         }
         private bool CanExecute_AddEmployeeSpecialtyCommand() => SelectedSpecialty != null;
-
-        public RelayCommand<SpecialtyDisplay> DeleteEmployeeSpecialtyCommand { get; private set; }
-        private void Execute_DeleteEmployeeSpecialtyCommand(SpecialtyDisplay display)
-            => LocalEmployeeSpecialties.Remove(display);
 
         private SpecialtyDisplay _selectedSpecialty = null!;
         public SpecialtyDisplay SelectedSpecialty

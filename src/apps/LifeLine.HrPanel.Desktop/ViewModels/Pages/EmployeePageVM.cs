@@ -1472,6 +1472,25 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         }
         private bool CanExecute_CreateEmployeeSpecialtyCommand() => true;
 
+        // DELETE
+        public RelayCommandAsync<SpecialtyDisplay> DeleteEmployeeSpecialtyCommand { get; private set; }
+        private async Task Execute_DeleteEmployeeSpecialtyCommand(SpecialtyDisplay display)
+        {
+            List<Error> errors = [];
+
+            var result = await _employeeSpecialtyApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeleteEmployeeSpecialtyAsync(Guid.Parse(display.SpecialtyId));
+
+            if (!result.IsSuccess)
+            {
+                MessageBox.Show("Не удалось удалить специальность!");
+                return;
+            }
+
+            Specialties.LocalEmployeeSpecialties.Remove(display);
+            Specialties.ClearProperty();
+        }
+        private bool CanExecute_DeleteEmployeeSpecialtyCommand(SpecialtyDisplay display) => SelectedEmployee != null;
+
         #endregion
 
         #region EditAssignmentContract
@@ -1598,25 +1617,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             AssigmentsContracts.ClearProperty();
         }
         private bool CanExecute_UpdateAssignmentContractCommand() => true;
-
-        #endregion
-
-        #region DeleteEmployeeSpecialtyCommand
-
-        public RelayCommandAsync<SpecialtyDisplay> DeleteEmployeeSpecialtyCommand { get; private set; }
-        private async Task Execute_DeleteEmployeeSpecialtyCommand(SpecialtyDisplay display)
-        {
-            var result = await _employeeSpecialtyApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeleteEmployeeSpecialtyAsync(Guid.Parse(display.SpecialtyId));
-            
-            if (!result.IsSuccess)
-            {
-                MessageBox.Show("Не удалось удалить специальность!");
-                return;
-            }
-
-            SpecialtiesCollection.Remove(display);
-        }
-        private bool CanExecute_DeleteEmployeeSpecialtyCommand(SpecialtyDisplay display) => SelectedEmployee != null;
 
         #endregion
 

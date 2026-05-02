@@ -73,7 +73,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Button Width="25" Foreground="#F06870" 
-                                            Command="{Binding DataContext.Specialties.DeleteEmployeeSpecialtyCommand, 
+                                            Command="{Binding DataContext.DeleteEmployeeSpecialtyCommand, 
                                             RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                             CommandParameter="{Binding }" 
                                             Style="{StaticResource Button.Icon}">
