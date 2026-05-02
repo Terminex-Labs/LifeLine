@@ -43,7 +43,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             SelectMultipleCommand = new RelayCommand(Execute_SelectMultipleCommand);
             RemovePendingFileCommand = new RelayCommand<PendingFileItem>(Execute_RemovePendingFileCommand);
             AddEducationDocumentCommandAsync = new RelayCommandAsync(Execute_AddEducationDocumentCommandAsync, CanExecute_AddEducationDocumentCommand);
-            DeleteEducationDocumentCommand = new RelayCommand<EducationDocumentDisplay>(Execute_DeleteEducationDocumentCommand);
         }
 
         private string _documentNumber = null!;
@@ -157,9 +156,12 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             get => _selectedEducationDocument;
             set
             {
-                SetProp(value);
+                if (value != null)
+                {
+                    SetProp(value);
 
-                SetProperty(ref _selectedEducationDocument, value);
+                    SetProperty(ref _selectedEducationDocument, value);
+                }
             }
         }
 
@@ -293,10 +295,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                !string.IsNullOrWhiteSpace(IssuedDate.ToString()) &&
                IssuedDate != DateTime.MinValue &&
                !string.IsNullOrWhiteSpace(OrganizationName);
-
-        public RelayCommand<EducationDocumentDisplay>? DeleteEducationDocumentCommand { get; private set; }
-        private void Execute_DeleteEducationDocumentCommand(EducationDocumentDisplay display)
-            => LocalEducationDocuments.Remove(display);
 
         public void ClearProperty()
         {

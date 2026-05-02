@@ -140,6 +140,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             CreateEducationdocumentCommand = new RelayCommandAsync(Execute_CreateEducationdocumentCommand, CanExecute_CreateEducationdocumentCommand);
             UpdateEducationdocumentCommand = new RelayCommandAsync(Execute_UpdateEducationdocumentCommand, CanExecute_UpdateEducationdocumentCommand);
+            DeleteEducationDocumentCommand = new RelayCommandAsync<EducationDocumentDisplay>(Execute_DeleteEducationDocumentCommand, CanExecute_DeleteEducationDocumentCommand);
 
             CreateWorkPermitCommand = new RelayCommandAsync(Execute_CreateWorkPermitCommand, CanExecute_CreateWorkPermitCommand);
             UpdateWorkPermitCommand = new RelayCommandAsync(Execute_UpdateWorkPermitCommand, CanExecute_UpdateWorkPermitCommand);
@@ -1263,6 +1264,43 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         }
         private bool CanExecute_UpdateEducationdocumentCommand() => true;
 
+        // DELETE
+        public RelayCommandAsync<EducationDocumentDisplay> DeleteEducationDocumentCommand { get; private set; }
+        private async Task Execute_DeleteEducationDocumentCommand(EducationDocumentDisplay display)
+        {
+            List<Error> errors = [];
+
+            Func<Task> func = display.SaveStatus switch
+            {
+                SaveStatus.Local => async () =>
+                {
+                    EducationDocuments.LocalEducationDocuments.Remove(display);
+                    EducationDocuments.EducationDocumentsView.Refresh();
+                    EducationDocuments.ClearProperty();
+                }
+                ,
+                SaveStatus.DataBase => async () =>
+                {
+                    var result = await _educationDocumentApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeleteEducationDocumentAsync(Guid.Parse(display.EducationDocumentId));
+
+                    if (!result.IsSuccess)
+                        errors.AddRange(result.Errors);
+
+                    EducationDocuments.LocalEducationDocuments.Remove(display);
+                    EducationDocuments.EducationDocumentsView.Refresh();
+                    EducationDocuments.ClearProperty();
+                }
+                ,
+
+                _ => async () => Result.Success()
+            };
+
+            await func();
+
+            errors.ShowError();
+        }
+        private bool CanExecute_DeleteEducationDocumentCommand(EducationDocumentDisplay display) => SelectedEmployee != null;
+        
         #endregion
 
         #region EditWorkPermit
