@@ -200,7 +200,7 @@
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Button Width="25" Foreground="#F06870" 
-                                                    Command="{Binding AssigmentsContracts.DataContext.DeleteWorkPermitCommand, 
+                                                    Command="{Binding DataContext.DeleteAssignmentContractCommand, 
                                                     RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                                     CommandParameter="{Binding }" 
                                                     Style="{StaticResource Button.Icon}">
@@ -293,7 +293,7 @@
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Button Width="25" Foreground="#F06870" 
-                                                    Command="{Binding DataContext.AssigmentsContracts.DeleteAssignmentContractCommand, 
+                                                    Command="{Binding DataContext.DeleteAssignmentContractCommand, 
                                                     RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                                     CommandParameter="{Binding }" 
                                                     Style="{StaticResource Button.Icon}">

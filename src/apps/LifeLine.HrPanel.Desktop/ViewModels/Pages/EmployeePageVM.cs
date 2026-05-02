@@ -19,6 +19,7 @@ using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Enums;
 using LifeLine.HrPanel.Desktop.Models;
 using LifeLine.HrPanel.Desktop.ViewModels.Features;
+using LifeLine.HrPanel.Desktop.Views.UserControls;
 using Shared.Contracts.Request.EmployeeService.Assignment;
 using Shared.Contracts.Request.EmployeeService.ContactInformation;
 using Shared.Contracts.Request.EmployeeService.EducationDocument;
@@ -161,7 +162,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             DeleteEmployeeSpecialtyCommand = new RelayCommandAsync<SpecialtyDisplay>(Execute_DeleteEmployeeSpecialtyCommand, CanExecute_DeleteEmployeeSpecialtyCommand);
             DeleteWorkPermitCommand = new RelayCommandAsync<WorkPermitDisplay>(Execute_DeleteWorkPermitCommand, CanExecute_DeleteWorkPermitCommand);
-            DeleteAssignmentCommand = new RelayCommandAsync<AssignmentContractDisplay>(Execute_DeleteAssignmentCommand, CanExecute_DeleteAssignmentCommand);
+            DeleteAssignmentContractCommand = new RelayCommandAsync<AssignmentContractDisplay>(Execute_DeleteAssignmentContractCommand, CanExecute_DeleteAssignmentContractCommand);
 
             SoftDeleteEmployeeCommand = new RelayCommandAsync<EmployeeHrDisplay>(Execute_SoftDeleteEmployeeCommand);
         }
@@ -1618,24 +1619,40 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         }
         private bool CanExecute_UpdateAssignmentContractCommand() => true;
 
-        #endregion
-
-        #region DeleteAssignmentCommand
-
-        public RelayCommandAsync<AssignmentContractDisplay> DeleteAssignmentCommand { get; private set; }
-        private async Task Execute_DeleteAssignmentCommand(AssignmentContractDisplay display)
+        // DELETE
+        public RelayCommandAsync<AssignmentContractDisplay> DeleteAssignmentContractCommand { get; private set; }
+        private async Task Execute_DeleteAssignmentContractCommand(AssignmentContractDisplay display)
         {
-            var result = await _assignmentApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeleteAssignmentContractAsync(Guid.Parse(display.AssignmentId));
+            List<Error> errors = [];
 
-            if (!result.IsSuccess)
+            Func<Task> func = display.SaveStatus switch
             {
-                MessageBox.Show($"Не удалось удалить назначение и контракт!");
-                return;
-            }
+                SaveStatus.Local => async () =>
+                {
+                    AssigmentsContracts.LocalAssignmentsContracts.Remove(display);
+                    AssigmentsContracts.AssignmentsContractsView.Refresh();
+                    AssigmentsContracts.ClearProperty();
+                },
+                SaveStatus.DataBase => async () =>
+                {
+                    var result = await _assignmentApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeleteAssignmentContractAsync(Guid.Parse(display.AssignmentId));
 
-            AssignmentContractsList.Remove(display);
+                    if (!result.IsSuccess)
+                        errors.AddRange(result.Errors);
+
+                    AssigmentsContracts.LocalAssignmentsContracts.Remove(display);
+                    AssigmentsContracts.AssignmentsContractsView.Refresh();
+                    AssigmentsContracts.ClearProperty();
+                },
+
+                _ => async () => Result.Success()
+            };
+
+            await func();
+
+            errors.ShowError();
         }
-        private bool CanExecute_DeleteAssignmentCommand(AssignmentContractDisplay display) => SelectedEmployee != null;
+        private bool CanExecute_DeleteAssignmentContractCommand(AssignmentContractDisplay display) => SelectedEmployee != null;
 
         #endregion
 

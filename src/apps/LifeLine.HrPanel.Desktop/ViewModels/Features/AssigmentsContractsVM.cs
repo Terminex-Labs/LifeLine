@@ -1,6 +1,5 @@
 ﻿using LifeLine.Directory.Service.Client.Services.Position.Factories;
 using LifeLine.HrPanel.Desktop.Models;
-using LifeLine.HrPanel.Desktop.Views.UserControls;
 using Shared.Contracts.Response.EmployeeService;
 using Shared.WPF.Commands;
 using Shared.WPF.Constants;
@@ -56,7 +55,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             SelectMultipleCommand = new RelayCommand(Execute_SelectMultipleCommand);
             RemovePendingFileCommand = new RelayCommand<PendingFileItem>(Execute_RemovePendingFileCommand);
             AddAssignmentContractCommandAsync = new RelayCommandAsync(Execute_AddAssignmentContractCommandAsync, CanExecute_AddAssignmentContractCommand);
-            DeleteAssignmentContractCommand = new RelayCommand<AssignmentContractDisplay>(Execute_DeleteAssignmentContractCommand);
 
             _getAllPositionByIdDepartmentCommandAsync = new RelayCommandAsync<DepartmentDisplay>(Execute_GetAllPositionByIdDepartmentCommandAsyn);
         }
@@ -209,9 +207,12 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             get => _selectedAssignmentContract;
             set
             {
-                SetProp(value);
+                if (value != null)
+                {
+                    SetProp(value);
 
-                SetProperty(ref _selectedAssignmentContract, value);
+                    SetProperty(ref _selectedAssignmentContract, value);
+                }
             }
         }
 
@@ -384,10 +385,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                !string.IsNullOrWhiteSpace(StartDate.ToString()) &&
                !string.IsNullOrWhiteSpace(EndDate.ToString()) &&
                !string.IsNullOrWhiteSpace(Salary.ToString());
-
-        public RelayCommand<AssignmentContractDisplay> DeleteAssignmentContractCommand { get; private set; }
-        private void Execute_DeleteAssignmentContractCommand(AssignmentContractDisplay display)
-            => LocalAssignmentsContracts.Remove(display);
 
         public void ClearProperty()
         {
