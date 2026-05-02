@@ -693,47 +693,13 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         #endregion
 
-        #region bool
+        #region Получение данных
 
-        private bool _isUseContactInformation;
-        public bool IsUseContactInformation
-        {
-            get => _isUseContactInformation;
-            set => SetProperty(ref _isUseContactInformation, value);
-        }
-
-        private bool _isUsePersonalDocument;
-        public bool IsUsePersonalDocument
-        {
-            get => _isUsePersonalDocument;
-            set => SetProperty(ref _isUsePersonalDocument, value);
-        }
-
-        private bool _isUseEducationDocument;
-        public bool IsUseEducationDocument
-        {
-            get => _isUseEducationDocument;
-            set => SetProperty(ref _isUseEducationDocument, value);
-        }
-
-        private bool _isUseWorkPermit;
-        public bool IsUseWorkPermit
-        {
-            get => _isUseWorkPermit;
-            set => SetProperty(ref _isUseWorkPermit, value);
-        }
-
-        #endregion
-
-        #region Genders
-
+        // GENDERS
         public ObservableCollection<GenderResponse> Genders { get; private init; } = [];
         private async Task GetAllGenderAsync() => Genders.Load(await _genderReadOnlyService.GetAllAsync());
 
-        #endregion
-
-        #region DocumentType
-
+        // DOCUMENT TYPE
         public ObservableCollection<DocumentTypeDisplay> DocumentTypes { get; private init; } = [];
         private async Task GetAllDocumentTypeAsync()
         {
@@ -743,10 +709,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 DocumentTypes.Add(new DocumentTypeDisplay(item));
         }
 
-        #endregion
-
-        #region AmissionStatus
-
+        // ADMISSION STATUS
         public ObservableCollection<AdmissionStatusDisplay> AdmissionStatuses { get; private init; } = [];
         private async Task GetAllAdmissionStatusAsync()
         {
@@ -756,10 +719,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 AdmissionStatuses.Add(new AdmissionStatusDisplay(item));
         }
 
-        #endregion
-
-        #region PermiteType
-
+        // PERMIT TYPE
         public ObservableCollection<PermitTypeDisplay> PermitTypes { get; private init; } = [];
         private async Task GetAllPermitTypeAsync()
         {
@@ -769,10 +729,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 PermitTypes.Add(new PermitTypeDisplay(item));
         }
 
-        #endregion
-
-        #region EducationLevel
-
+        // EDUCATION LEVEL
         public ObservableCollection<EducationLevelDisplay> EducationLevels { get; private init; } = [];
         private async Task GetAllEducationLevelAsync()
         {
@@ -782,10 +739,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 EducationLevels.Add(new EducationLevelDisplay(item));
         }
 
-        #endregion
-
-        #region EmployeeType
-
+        // EMPLOYEE TYPE
         public ObservableCollection<EmployeeTypeDisplay> EmployeeTypes { get; private init; } = [];
         private async Task GetAllEmployeeTypeAsync()
         {
@@ -795,10 +749,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 EmployeeTypes.Add(new EmployeeTypeDisplay(item));
         }
 
-        #endregion
-
-        #region Department
-
+        // DEPARTMENT
         public ObservableCollection<DepartmentDisplay> Departments { get; private init; } = [];
         private async Task GetAllDepartmentAsync()
         {
@@ -807,10 +758,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             Departments.Load([.. departments.Select(department => new DepartmentDisplay(department))]);
         }
 
-        #endregion
-
-        #region Status
-
+        // STATUS
         public ObservableCollection<StatusDisplay> Statuses { get; private init; } = [];
         private async Task GetAllStatusAsync()
         {
@@ -820,10 +768,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 Statuses.Add(new StatusDisplay(item));
         }
 
-        #endregion
-
-        #region Specialty
-
+        // SPECIALTY
         public ObservableCollection<SpecialtyDisplay> SpecialtiesCollection { get; private init; } = [];
         private async Task GetAllSpecialty()
         {
@@ -833,10 +778,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 SpecialtiesCollection.Add(new SpecialtyDisplay(item));
         }
 
-        #endregion
-
-        #region Manager
-
+        // MANAGER
         public ObservableCollection<ManagerDisplay> Managers { get; private init; } = [];
         private async Task GetAllManagerAsync()
         {
