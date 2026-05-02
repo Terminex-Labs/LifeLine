@@ -219,7 +219,7 @@
 
                     <Expander Header="Назначение / Контракт" IsExpanded="True"
                               Margin="5" Style="{StaticResource ModernExpanderStyle}">
-                        <hrus:AssigmentsContracts/>
+                        <hrus:AssigmentsContracts Action="{Binding ActionProp}"/>
                     </Expander>
                 </StackPanel>
             </ScrollViewer>

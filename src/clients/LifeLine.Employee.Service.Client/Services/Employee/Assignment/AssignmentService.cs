@@ -1,9 +1,10 @@
 ﻿using Shared.Contracts.Request.EmployeeService.Assignment;
 using Shared.Contracts.Response.EmployeeService;
 using Shared.Http.Base;
+using Shared.Kernel.Errors;
+using System.Diagnostics;
 using System.Net.Http.Json;
 using Terminex.Common.Results;
-using Shared.Kernel.Errors;
 
 namespace LifeLine.Employee.Service.Client.Services.Employee.Assignment
 {

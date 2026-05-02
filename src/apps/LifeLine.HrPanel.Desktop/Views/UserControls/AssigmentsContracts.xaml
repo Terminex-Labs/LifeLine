@@ -580,7 +580,21 @@
 
         <Button Grid.Row="3" Content="Продолжить" Height="40"
                 HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                Command="{Binding ExecuteStepCommand}" CommandParameter="{x:Static enum:EmployeeCreationSteps.PersonalInfo}"
+                Command="{Binding ExecuteStepCommand}" 
+                CommandParameter="{x:Static enum:EmployeeCreationSteps.PersonalInfo}"
+                Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.CreateStep}, UpdateSourceTrigger=PropertyChanged}"
+                Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+
+        <Button Grid.Row="3" Content="Сохранить" Height="40"
+                HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                Command="{Binding CreateAssignmentContractCommand}" 
+                Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Create}, UpdateSourceTrigger=PropertyChanged}"
+                Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+
+        <Button Grid.Row="3" Content="Обновить" Height="40"
+                HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                Command="{Binding UpdateAssignmentContractCommand}" 
+                Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Update}, UpdateSourceTrigger=PropertyChanged}"
                 Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
     </Grid>
     <!--#endregion-->

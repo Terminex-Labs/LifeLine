@@ -1,5 +1,6 @@
 ﻿using LifeLine.Directory.Service.Client.Services.Position.Factories;
 using LifeLine.HrPanel.Desktop.Models;
+using LifeLine.HrPanel.Desktop.Views.UserControls;
 using Shared.Contracts.Response.EmployeeService;
 using Shared.WPF.Commands;
 using Shared.WPF.Constants;
@@ -167,7 +168,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             }
         }
 
-        private DateTime _startDate;
+        private DateTime _startDate = DateTime.Now;
         public DateTime StartDate
         {
             get => _startDate;
@@ -178,7 +179,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             }
         }
 
-        private DateTime _endDate;
+        private DateTime _endDate = DateTime.Now;
         public DateTime EndDate
         {
             get => _endDate;
@@ -201,6 +202,34 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         }
 
         #endregion
+
+        private AssignmentContractDisplay _selectedAssignmentContract;
+        public AssignmentContractDisplay SelectedAssignmentContract
+        {
+            get => _selectedAssignmentContract;
+            set
+            {
+                SetProp(value);
+
+                SetProperty(ref _selectedAssignmentContract, value);
+            }
+        }
+
+        private void SetProp(AssignmentContractDisplay value)
+        {
+            Department = value.Department;
+            Position = value.Position;
+            Manager = value.Manager;
+            HireDate = value.HireDate;
+            TerminationDate = value.TerminationDate;
+            Status = value.Status;
+
+            EmployeeType = value.EmployeeType;
+            ContractNumber = value.ContractNumber;
+            StartDate = value.StartDate;
+            EndDate = value.EndDate;
+            Salary = value.Salary;
+        }
 
         public ObservableCollection<PendingFileItem> PendingFilePaths { get; private set; } = [];
 
@@ -289,6 +318,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
 
                 var fileName = $"Назначение.pdf";
 
+                //MessageBox.Show($"Position.Id - {Position.Id}\n" +
+                //                $"Position.Name = {Position.Name}");
+
                 LocalAssignmentsContracts.Add
                     (
                         new AssignmentContractDisplay
@@ -330,7 +362,13 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                         }
                     );
 
+                //foreach (var item in LocalAssignmentsContracts.Where(x => x.SaveStatus == SaveStatus.Local && x.Position != null))
+                //    MessageBox.Show($"До ClearProperty() - LocalAssignmentsContracts.Position:\nId - {item.Position.Id}\nName - {item.Position.Name}");
+
                 ClearProperty();
+
+                //foreach (var item in LocalAssignmentsContracts.Where(x => x.SaveStatus == SaveStatus.Local && x.Position != null))
+                //    MessageBox.Show($"После ClearProperty() - LocalAssignmentsContracts.Position:\nId - {item.Position.Id}\nName - {item.Position.Name}");
             }
             catch (Exception ex)
             {
@@ -356,14 +394,15 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             Department = null!;
             Position = null!;
             Manager = null;
-            HireDate = HireDate;
+            HireDate = DateTime.Now;
+            TerminationDate = DateTime.Now;
             Status = null!;
             FilePath = string.Empty;
 
             EmployeeType = null!;
             ContractNumber = string.Empty;
-            StartDate = DateTime.UtcNow;
-            EndDate = DateTime.UtcNow;
+            StartDate = DateTime.Now;
+            EndDate = DateTime.Now;
             Salary = decimal.Zero;
 
             PendingFilePaths.Clear();

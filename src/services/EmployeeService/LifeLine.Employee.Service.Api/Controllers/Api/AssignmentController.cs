@@ -5,6 +5,7 @@ using LifeLine.Employee.Service.Application.Features.Employees.Assignments.Updat
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Contracts.Request.EmployeeService.Assignment;
+using System.Diagnostics;
 
 namespace LifeLine.Employee.Service.Api.Controllers.Api
 {

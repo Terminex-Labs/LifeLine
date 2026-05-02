@@ -162,7 +162,7 @@
                           IsEnabled="{Binding Steps, Converter={StaticResource EmployeeCreationsToBoolConverter}, ConverterParameter={x:Static enum:EmployeeCreationSteps.AssigmentsContracts}}" 
                           IsExpanded="{Binding Steps, Converter={StaticResource EmployeeCreationsToBoolConverter}, ConverterParameter={x:Static enum:EmployeeCreationSteps.AssigmentsContracts}}"   
                           d:IsExpanded="True" Margin="5" Style="{StaticResource ModernExpanderStyle}">
-                    <hrus:AssigmentsContracts/>
+                    <hrus:AssigmentsContracts Action="CreateStep"/>
                 </Expander>
             </StackPanel>
         </ScrollViewer>
