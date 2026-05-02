@@ -183,7 +183,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Button Width="25" Foreground="#F06870" 
-                                            Command="{Binding DataContext.WorkPermits.DeleteWorkPermitCommand, 
+                                            Command="{Binding DataContext.DeleteWorkPermitCommand, 
                                             RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                             CommandParameter="{Binding }" 
                                             Style="{StaticResource Button.Icon}">

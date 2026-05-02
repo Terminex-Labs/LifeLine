@@ -159,7 +159,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             CloseModalCommand = new RelayCommand(Execute_CloseModalCommand);
 
-            DeleteEducationDocumentCommand = new RelayCommandAsync<EducationDocumentDisplay>(Execute_DeleteEducationDocumentCommand, CanExecute_DeleteEducationDocumentCommand);
             DeleteEmployeeSpecialtyCommand = new RelayCommandAsync<SpecialtyDisplay>(Execute_DeleteEmployeeSpecialtyCommand, CanExecute_DeleteEmployeeSpecialtyCommand);
             DeleteWorkPermitCommand = new RelayCommandAsync<WorkPermitDisplay>(Execute_DeleteWorkPermitCommand, CanExecute_DeleteWorkPermitCommand);
             DeleteAssignmentCommand = new RelayCommandAsync<AssignmentContractDisplay>(Execute_DeleteAssignmentCommand, CanExecute_DeleteAssignmentCommand);
@@ -1415,6 +1414,41 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         }
         private bool CanExecute_UpdateWorkPermitCommand() => true;
 
+        // DELETE
+        public RelayCommandAsync<WorkPermitDisplay> DeleteWorkPermitCommand { get; private set; }
+        private async Task Execute_DeleteWorkPermitCommand(WorkPermitDisplay display)
+        {
+            List<Error> errors = [];
+
+            Func<Task> func = display.SaveStatus switch
+            {
+                SaveStatus.Local => async () =>
+                {
+                    WorkPermits.LocalWorkPermits.Remove(display);
+                    WorkPermits.WorkPermitsView.Refresh();
+                    WorkPermits.ClearProperty();
+                },
+                SaveStatus.DataBase => async () =>
+                {
+                    var result = await _workPermitApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeleteWorkPermitAsync(Guid.Parse(display.WorkPermitId));
+
+                    if (!result.IsSuccess)
+                        errors.AddRange(result.Errors);
+
+                    WorkPermits.LocalWorkPermits.Remove(display);
+                    WorkPermits.WorkPermitsView.Refresh();
+                    WorkPermits.ClearProperty();
+                },
+
+                _ => async () => Result.Success()
+            };
+
+            await func();
+
+            errors.ShowError();
+        }
+        private bool CanExecute_DeleteWorkPermitCommand(WorkPermitDisplay display) => SelectedEmployee != null;
+
         #endregion
 
         #region EditEmployeeSpecialty
@@ -1567,25 +1601,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         #endregion
 
-        #region DeleteEducationDocumentCommand
-
-        public RelayCommandAsync<EducationDocumentDisplay> DeleteEducationDocumentCommand { get; private set; }
-        private async Task Execute_DeleteEducationDocumentCommand(EducationDocumentDisplay display)
-        {
-            var result = await _educationDocumentApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeleteEducationDocumentAsync(Guid.Parse(display.EducationDocumentId));
-
-            if (!result.IsSuccess)
-            {
-                MessageBox.Show("Не удалось удалить послеобразовательный документ!");
-                return;
-            }
-
-            EducationDocumentsList.Remove(display);
-        }
-        private bool CanExecute_DeleteEducationDocumentCommand(EducationDocumentDisplay display) => SelectedEmployee != null;
-
-        #endregion
-
         #region DeleteEmployeeSpecialtyCommand
 
         public RelayCommandAsync<SpecialtyDisplay> DeleteEmployeeSpecialtyCommand { get; private set; }
@@ -1602,25 +1617,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             SpecialtiesCollection.Remove(display);
         }
         private bool CanExecute_DeleteEmployeeSpecialtyCommand(SpecialtyDisplay display) => SelectedEmployee != null;
-
-        #endregion
-
-        #region DeleteWorkPermitCommand
-
-        public RelayCommandAsync<WorkPermitDisplay> DeleteWorkPermitCommand { get; private set; }
-        private async Task Execute_DeleteWorkPermitCommand(WorkPermitDisplay display)
-        {
-            var result = await _workPermitApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeleteWorkPermitAsync(Guid.Parse(display.WorkPermitId));
-
-            if (!result.IsSuccess)
-            {
-                MessageBox.Show($"Не удалось удалить рабочее разрешение!");
-                return;
-            }
-
-            WorkPermitsList.Remove(display);
-        }
-        private bool CanExecute_DeleteWorkPermitCommand(WorkPermitDisplay display) => SelectedEmployee != null;
 
         #endregion
 

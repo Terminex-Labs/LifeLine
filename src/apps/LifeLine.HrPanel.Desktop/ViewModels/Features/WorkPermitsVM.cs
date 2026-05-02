@@ -43,7 +43,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             SelectMultipleCommand = new RelayCommand(Execute_SelectMultipleCommand);
             RemovePendingFileCommand = new RelayCommand<PendingFileItem>(Execute_RemovePendingFileCommand);
             AddWorkPermitCommandAsync = new RelayCommandAsync(Execute_AddWorkPermitCommandAsync, CanExecute_AddWorkPermitCommand);
-            DeleteWorkPermitCommand = new RelayCommand<WorkPermitDisplay>(Execute_DeleteWorkPermitCommand);
         }
 
         private string _workPermitName = null!;
@@ -168,9 +167,12 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             get => _selectedWorkPermit;
             set
             {
-                SetProp(value);
+                if (value != null)
+                {
+                    SetProp(value);
 
-                SetProperty(ref _selectedWorkPermit, value);
+                    SetProperty(ref _selectedWorkPermit, value);
+                }
             }
         }
 
@@ -309,10 +311,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             !string.IsNullOrWhiteSpace(IssueDate.ToString()) &&
             ExpiryDate != DateTime.MinValue &&
             !string.IsNullOrWhiteSpace(ExpiryDate.ToString());
-
-        public RelayCommand<WorkPermitDisplay> DeleteWorkPermitCommand { get; private set; }
-        private void Execute_DeleteWorkPermitCommand(WorkPermitDisplay display)
-            => LocalWorkPermits.Remove(display);
 
         public void ClearProperty()
         {
