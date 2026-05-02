@@ -162,7 +162,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Button Width="25" Foreground="#F06870" 
-                                           Command="{Binding DataContext.PersonalDocuments.DeletePersonalDocumentCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                           Command="{Binding DataContext.DeletePersonalDocumentCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                            CommandParameter="{Binding }" 
                                            Style="{StaticResource Button.Icon}">
                                         <Control Template="{StaticResource Trash}"/>

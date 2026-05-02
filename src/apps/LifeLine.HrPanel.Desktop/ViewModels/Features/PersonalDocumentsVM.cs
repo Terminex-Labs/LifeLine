@@ -43,7 +43,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             SelectMultipleCommand = new RelayCommand(Execute_SelectMultipleCommand);
             RemovePendingFileCommand = new RelayCommand<PendingFileItem>(Execute_RemovePendingFileCommand);
             AddPersonalDocumentCommand = new RelayCommandAsync(Execute_AddPersonalDocumentCommand, CanExecute_AddPersonalDocumentCommand);
-            DeletePersonalDocumentCommand = new RelayCommand<PersonalDocumentDisplay>(Execute_DeletePersonalDocumentCommand);
         }
 
         private string _number = null!;
@@ -91,9 +90,12 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             get => _selectedLocalPersonalDocument;
             set
             {
-                SetProp(value);
+                if (value != null)
+                {
+                    SetProp(value);
 
-                SetProperty(ref _selectedLocalPersonalDocument, value);
+                    SetProperty(ref _selectedLocalPersonalDocument, value);
+                }
             }
         }
 
@@ -208,10 +210,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         }
         private bool CanExecute_AddPersonalDocumentCommand()
             => DocumentType != null && !string.IsNullOrWhiteSpace(Number);
-
-        public RelayCommand<PersonalDocumentDisplay>? DeletePersonalDocumentCommand { get; private set; }
-        private void Execute_DeletePersonalDocumentCommand(PersonalDocumentDisplay display)
-            => LocalPersonalDocuments.Remove(display);
 
         public void ClearProperty()
         {

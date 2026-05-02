@@ -134,6 +134,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             CreatePersonalDocumentCommand = new RelayCommandAsync(Execute_CreatePersonalDocumentCommand, CanExecute_CreatePersonalDocumentCommand);
             UpdatePersonalDocumentCommand = new RelayCommandAsync(Execute_UpdatePersonalDocumentCommand, CanExecute_UpdatePersonalDocumentCommand);
+            DeletePersonalDocumentCommand = new RelayCommandAsync<PersonalDocumentDisplay>(Execute_DeletePersonalDocumentCommand, CanExecute_DeletePersonalDocumentCommand);
 
             UpdateContactInformationCommand = new RelayCommandAsync(Execute_UpdateContactInformationCommand, CanExecute_UpdateContactInformationCommand);
 
@@ -157,7 +158,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             CloseModalCommand = new RelayCommand(Execute_CloseModalCommand);
 
-            DeletePersonalDocumentCommand = new RelayCommandAsync<PersonalDocumentDisplay>(Execute_DeletePersonalDocumentCommand, CanExecute_DeletePersonalDocumentCommand);
             DeleteEducationDocumentCommand = new RelayCommandAsync<EducationDocumentDisplay>(Execute_DeleteEducationDocumentCommand, CanExecute_DeleteEducationDocumentCommand);
             DeleteEmployeeSpecialtyCommand = new RelayCommandAsync<SpecialtyDisplay>(Execute_DeleteEmployeeSpecialtyCommand, CanExecute_DeleteEmployeeSpecialtyCommand);
             DeleteWorkPermitCommand = new RelayCommandAsync<WorkPermitDisplay>(Execute_DeleteWorkPermitCommand, CanExecute_DeleteWorkPermitCommand);
@@ -1115,6 +1115,40 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         private bool CanExecute_UpdatePersonalDocumentCommand()
             => PersonalDocuments!.SelectedLocalPersonalDocument != null && PersonalDocuments!.DocumentType != null && !string.IsNullOrWhiteSpace(PersonalDocuments!.Number);
 
+        // DELETE
+        public RelayCommandAsync<PersonalDocumentDisplay> DeletePersonalDocumentCommand { get; private set; }
+        private async Task Execute_DeletePersonalDocumentCommand(PersonalDocumentDisplay display)
+        {
+            List<Error> errors = [];
+
+            Func<Task> func = display.SaveStatus switch
+            {
+                SaveStatus.Local => async () =>
+                {
+                    PersonalDocuments.LocalPersonalDocuments.Remove(display);
+                    PersonalDocuments.PersonalDocumentsView.Refresh();
+                    PersonalDocuments.ClearProperty();
+                },
+                SaveStatus.DataBase => async () =>
+                {
+                    var result = await _personalDocumentApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeletePersonalDocumentAsync(display.PersonalDocumentId);
+
+                    if (!result.IsSuccess)
+                        errors.AddRange(result.Errors);
+
+                    PersonalDocuments.LocalPersonalDocuments.Remove(display);
+                    PersonalDocuments.PersonalDocumentsView.Refresh();
+                    PersonalDocuments.ClearProperty();
+                },
+
+                _ => async () => Result.Success()
+            };
+
+            await func();
+
+            errors.ShowError();
+        }
+        private bool CanExecute_DeletePersonalDocumentCommand(PersonalDocumentDisplay display) => SelectedEmployee != null;
         #endregion
 
         #region EditEducationDocument
@@ -1492,25 +1526,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             AssigmentsContracts.ClearProperty();
         }
         private bool CanExecute_UpdateAssignmentContractCommand() => true;
-
-        #endregion
-
-        #region DeletePersonalDocumentCommand
-
-        public RelayCommandAsync<PersonalDocumentDisplay> DeletePersonalDocumentCommand { get; private set; }
-        private async Task Execute_DeletePersonalDocumentCommand(PersonalDocumentDisplay display)
-        {
-            var result = await _personalDocumentApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeletePersonalDocumentAsync(display.PersonalDocumentId);
-
-            if (!result.IsSuccess)
-            {
-                MessageBox.Show("Не удалось удалить персональный документ!");
-                return;
-            }
-
-            PersonalDocumentsList.Remove(display);
-        }
-        private bool CanExecute_DeletePersonalDocumentCommand(PersonalDocumentDisplay display) => SelectedEmployee != null;
 
         #endregion
 

@@ -227,7 +227,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 EmployeeCreationSteps.Specialties => async () => await CreateEmployeeSpecialties(),
                 EmployeeCreationSteps.AssigmentsContracts => async () => await CreateAssignmentContracts(),
 
-                _ => () => Task.Run(() => Result.Success())
+                _ => async () => Result.Success()
             };
             var result = await func();
 
