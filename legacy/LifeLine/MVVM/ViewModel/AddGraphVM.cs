@@ -6,13 +6,7 @@ using LifeLine.Services.NavigationPages;
 using MasterAnalyticsDeadByDaylight.Command;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Windows.Forms.AxHost;
 
 namespace LifeLine.MVVM.ViewModel
 {

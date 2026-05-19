@@ -7,7 +7,6 @@ using MasterAnalyticsDeadByDaylight.Command;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
-using System.Windows.Forms;
 
 namespace LifeLine.MVVM.ViewModel
 {

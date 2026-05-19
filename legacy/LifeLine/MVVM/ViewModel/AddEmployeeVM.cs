@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
 using System.Drawing;
-using System.Windows.Forms;
 
 namespace LifeLine.MVVM.ViewModel
 {
@@ -617,15 +616,15 @@ namespace LifeLine.MVVM.ViewModel
 
         private void SelectedImage()
         {
-            OpenFileDialog openFileDialog = new() { Filter = "Изображения (*.jpg; *.jpeg; *.png)|*.jpg; *.jpeg; *.png" };
+            //OpenFileDialog openFileDialog = new() { Filter = "Изображения (*.jpg; *.jpeg; *.png)|*.jpg; *.jpeg; *.png" };
 
-            if (openFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                using (Image image = Image.FromFile(openFileDialog.FileName))
-                {
-                    SelectImage = FileHelper.ImageToBytes(image);
-                }
-            }
+            //if (openFileDialog.ShowDialog() == DialogResult.OK)
+            //{
+            //    using (Image image = Image.FromFile(openFileDialog.FileName))
+            //    {
+            //        SelectImage = FileHelper.ImageToBytes(image);
+            //    }
+            //}
         }
 
         #endregion
