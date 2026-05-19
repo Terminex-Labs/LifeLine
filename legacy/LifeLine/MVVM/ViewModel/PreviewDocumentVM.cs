@@ -493,21 +493,21 @@ namespace LifeLine.MVVM.ViewModel
 
         private void SelectedImage()
         {
-            var file = _openFileDialogService.OpenDialog();
+            //var file = _openFileDialogService.OpenDialog();
 
-            foreach (var item in file)
-            {
-                byte[] imageByte;
-                FileInfo fileInfo = new FileInfo(item);
+            //foreach (var item in file)
+            //{
+            //    byte[] imageByte;
+            //    FileInfo fileInfo = new FileInfo(item);
 
-                using (Image image = Image.FromFile(item))
-                {
-                    imageByte = FileHelper.ImageToBytes(image);
-                }
+            //    using (Image image = Image.FromFile(item))
+            //    {
+            //        imageByte = FileHelper.ImageToBytes(image);
+            //    }
 
-                DocImage = imageByte;
-                DocFile = fileInfo.Name;
-            }
+            //    DocImage = imageByte;
+            //    DocFile = fileInfo.Name;
+            //}
         }
 
         #endregion

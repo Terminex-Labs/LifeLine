@@ -478,29 +478,29 @@ namespace LifeLine.MVVM.ViewModel
 
         private void SelectedImage()
         {
-            var files = _openFileDialogService.OpenDialog();
-            if (files == null) { return; }
+            //var files = _openFileDialogService.OpenDialog();
+            //if (files == null) { return; }
 
-            if (files.Length != 0)
-            {
-                foreach (var item in files)
-                {
-                    byte[] imageByte;
-                    FileInfo fileInfo = new FileInfo(item);
+            //if (files.Length != 0)
+            //{
+            //    foreach (var item in files)
+            //    {
+            //        byte[] imageByte;
+            //        FileInfo fileInfo = new FileInfo(item);
 
-                    using (Image image = Image.FromFile(item))
-                    {
-                        imageByte = FileHelper.ImageToBytes(image);
-                    }
+            //        using (Image image = Image.FromFile(item))
+            //        {
+            //            imageByte = FileHelper.ImageToBytes(image);
+            //        }
 
-                    ImageDocumentEmployee imageDocumentEmployee = new ImageDocumentEmployee();
+            //        ImageDocumentEmployee imageDocumentEmployee = new ImageDocumentEmployee();
 
-                    imageDocumentEmployee.Image = imageByte;
-                    imageDocumentEmployee.NameImage = fileInfo.Name;
+            //        imageDocumentEmployee.Image = imageByte;
+            //        imageDocumentEmployee.NameImage = fileInfo.Name;
 
-                    ImageDocumentEmployees.Add(imageDocumentEmployee);
-                }
-            }
+            //        ImageDocumentEmployees.Add(imageDocumentEmployee);
+            //    }
+            //}
         }
 
         private void DeleteOneImage(object parameter)

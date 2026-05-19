@@ -38,10 +38,10 @@ namespace LifeLine.Utils.ValueConverter
                 if (File.Exists(imagePas))
                 {
                     //return new BitmapImage(new Uri(imagePas, UriKind.Absolute));
-                    using (Image image = Image.FromFile(imagePas))
-                    {
-                        return FileHelper.ImageToBytes(image);
-                    }
+                    //using (Image image = Image.FromFile(imagePas))
+                    //{
+                    //    return FileHelper.ImageToBytes(image);
+                    //}
                 }
             }
             else
