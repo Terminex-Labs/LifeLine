@@ -16,9 +16,9 @@ namespace LifeLine.HrPanel.Desktop.Views.UserControls
     /// <summary>
     /// Логика взаимодействия для Avatar.xaml
     /// </summary>
-    public partial class Avatar : UserControl
+    public partial class PersonalPhoto : UserControl
     {
-        public Avatar()
+        public PersonalPhoto()
         {
             InitializeComponent();
         }

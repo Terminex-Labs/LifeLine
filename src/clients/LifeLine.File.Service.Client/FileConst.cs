@@ -19,7 +19,7 @@
     {
         public readonly string Value = value;
 
-        public readonly static EmployeeFolderType Avatar            = new ("avatar");
+        public readonly static EmployeeFolderType PersonalPhoto     = new ("personal photo");
 
         public readonly static EmployeeFolderType PersonalDocument  = new ("personal document");
         public readonly static EmployeeFolderType EducationDocument = new ("education document");

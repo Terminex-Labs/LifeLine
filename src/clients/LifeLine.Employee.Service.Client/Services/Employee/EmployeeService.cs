@@ -9,7 +9,24 @@ namespace LifeLine.Employee.Service.Client.Services.Employee
 {
     public sealed class EmployeeService(HttpClient httpClient) : BaseHttpService<EmployeeResponse, string>(httpClient, "api/employees"), IEmployeeService
     {
-        public async Task<List<EmployeeHrItemResponse>> GetAllForHrAsync()
+		public async Task<Result> AddPersonalPhoto(string employeeId, AddPersonalPhotoRequest request)
+		{
+			try
+			{
+				var response = await HttpClient.PatchAsJsonAsync($"{Url}/{employeeId}/add-personal-photo", request, JsonSerializerOptions);
+
+                if (!response.IsSuccessStatusCode)
+                    return Result.Failure(new Error(AppErrors.CreateHttp, await response.Content.ReadAsStringAsync()));
+
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure(new Error(AppErrors.CreateHttp, $"Произошла ошибка при сохранении аватара пользователя!\n{ex}"));
+            }
+        }
+
+		public async Task<List<EmployeeHrItemResponse>> GetAllForHrAsync()
         {
 			try
 			{

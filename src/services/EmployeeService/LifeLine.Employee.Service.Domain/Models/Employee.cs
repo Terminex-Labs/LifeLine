@@ -20,7 +20,8 @@ namespace LifeLine.Employee.Service.Domain.Models
         public Patronymic? Patronymic { get; private set; }
         public DateTime DateEntry { get; private set; }
         public Rating Rating { get; private set; }
-        public ImageKey? Avatar { get; private set; }
+        //public ImageKey? Avatar { get; private set; }
+        public FileUrl? PersonalPhoto { get; private set; }
         public GenderId GenderId { get; private set; }
         public bool IsActive { get; private set; }
 
@@ -52,7 +53,7 @@ namespace LifeLine.Employee.Service.Domain.Models
             Name = name;
             Patronymic = patronymic;
             Rating = Rating.DefaultRating;
-            Avatar = ImageKey.Empty;
+            PersonalPhoto = FileUrl.Empty;
             GenderId = genderId;
         }
 
@@ -122,6 +123,16 @@ namespace LifeLine.Employee.Service.Domain.Models
         {
             if (genderId != GenderId)
                 GenderId = genderId;
+        }
+
+        /// <summary>
+        /// Добавление поля Персональной фотографии сотруднику
+        /// </summary>
+        /// <param name="personalPhoto"></param>
+        public void AddPersonalPhoto(FileUrl personalPhoto)
+        {
+            if (personalPhoto != PersonalPhoto)
+                PersonalPhoto = personalPhoto;
         }
 
         public void Activate() => IsActive = true;

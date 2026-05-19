@@ -46,10 +46,11 @@ namespace LifeLine.Employee.Service.Infrastructure.Persistence.Configurations.Wr
                    .HasColumnName("Rating")
                    .HasConversion(inDB => inDB.Value, outDB => Rating.Create(outDB));
 
-            builder.Property(x => x.Avatar)
-                   .HasColumnName("Avatar")
+            builder.Property(x => x.PersonalPhoto)
+                   .HasColumnName("PersonalPhoto")
                    .IsRequired(false)
-                   .HasConversion(inDB => inDB != null ? inDB.Value : null, outDB => outDB != null ? ImageKey.Create(outDB) : null);
+                   .HasConversion(outDB => outDB.HasValue ? outDB.Value.Value : null, inDB => string.IsNullOrWhiteSpace(inDB) ? null : new FileUrl(inDB));
+                   //.HasConversion(inDB => inDB != null ? inDB.Value : null, outDB => outDB != null ? FileUrl.Create(outDB) : null);
 
             builder.Property(x => x.GenderId)
                    .HasColumnName("GenderId")

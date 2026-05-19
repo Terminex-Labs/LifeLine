@@ -3,6 +3,7 @@ using LifeLine.Employee.Service.Application.Features.Employees.Delete;
 using LifeLine.Employee.Service.Application.Features.Employees.Get.GetAll;
 using LifeLine.Employee.Service.Application.Features.Employees.Get.GetAllForHr;
 using LifeLine.Employee.Service.Application.Features.Employees.Get.GetFullDetailsForEmployee;
+using LifeLine.Employee.Service.Application.Features.Employees.PersonalPhoto.Add;
 using LifeLine.Employee.Service.Application.Features.Employees.SoftDelete;
 using LifeLine.Employee.Service.Application.Features.Employees.Update.UpdateEmployee;
 using LifeLine.Employee.Service.Application.Features.Employees.Update.UpdateEmployeeGenderId;
@@ -57,6 +58,20 @@ namespace LifeLine.Employee.Service.Api.Controllers.Api
             return result.Match<IActionResult>
                 (
                     onSuccess: () => Ok("Успешное Обновление!"),
+                    onFailure: errors => BadRequest(errors)
+                );
+        }
+
+        [HttpPatch("{id}/add-personal-photo")]
+        public async Task<IActionResult> AddPersonalPhoto([FromRoute] Guid id, [FromBody] AddPersonalPhotoRequest request, CancellationToken cancellationToken = default)
+        {
+            var command = new AddPersonalPhotoCommand(id, request.BucketName, request.FileName);
+
+            var result = await _mediator.Send(command, cancellationToken);
+
+            return result.Match<IActionResult>
+                (
+                    onSuccess: () => Ok(),
                     onFailure: errors => BadRequest(errors)
                 );
         }

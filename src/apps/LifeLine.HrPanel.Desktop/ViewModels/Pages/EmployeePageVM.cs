@@ -123,7 +123,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             _contactInformationApiServiceFactory = contactInformationApiServiceFactory;
 
             PersonalInfo = new();
-            Avatar = new(_fileDialogService, _imageCompressionService);
+            PersonalPhoto = new(_fileDialogService, _imageCompressionService);
             ContactInformation = new();
             PersonalDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes);
             EducationDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes, EducationLevels);
@@ -352,11 +352,11 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             set => SetProperty(ref _personalInfo, value);
         }
 
-        private AvatarVM? _avatar;
-        public AvatarVM? Avatar
+        private PersonalPhotoVM? _personalPhoto;
+        public PersonalPhotoVM? PersonalPhoto
         {
-            get => _avatar;
-            set => SetProperty(ref _avatar, value);
+            get => _personalPhoto;
+            set => SetProperty(ref _personalPhoto, value);
         }
 
         private ContactInformationVM? _сontactInformation;
@@ -757,7 +757,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         private void ClearLocalLists()
         {
             PersonalInfo!.ClearProperty();
-            Avatar!.ClearProperty();
+            PersonalPhoto!.ClearProperty();
             ContactInformation!.ClearProperty();
 
             PersonalDocuments!.ClearProperty();

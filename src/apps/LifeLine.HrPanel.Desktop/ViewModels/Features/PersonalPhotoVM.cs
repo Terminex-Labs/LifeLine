@@ -9,12 +9,12 @@ using System.Windows.Media;
 
 namespace LifeLine.HrPanel.Desktop.ViewModels.Features
 {
-    internal sealed class AvatarVM : BaseEmployeeViewModel
+    internal sealed class PersonalPhotoVM : BaseEmployeeViewModel
     {
         private readonly IFileDialogService _fileDialogService;
         private readonly IImageCompressionService _imageCompressionService;
 
-        public AvatarVM(IFileDialogService fileDialogService, IImageCompressionService imageCompressionService)
+        public PersonalPhotoVM(IFileDialogService fileDialogService, IImageCompressionService imageCompressionService)
         {
             _fileDialogService = fileDialogService;
             _imageCompressionService = imageCompressionService;

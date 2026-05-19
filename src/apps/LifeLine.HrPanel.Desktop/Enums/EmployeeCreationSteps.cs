@@ -3,7 +3,7 @@
     public enum EmployeeCreationSteps
     {
         PersonalInfo,
-        Avatar,
+        PersonalPhoto,
         PersonalDocuments,
         ContactInformation,
         EducationDocuments,

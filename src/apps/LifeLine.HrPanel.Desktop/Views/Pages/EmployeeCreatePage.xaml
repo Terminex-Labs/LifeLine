@@ -113,11 +113,11 @@
                     </Grid.ColumnDefinitions>
 
                     <Expander Grid.Column="0" 
-                              Header="Аватар" 
-                              IsEnabled="{Binding Steps, Converter={StaticResource EmployeeCreationsToBoolConverter}, ConverterParameter={x:Static enum:EmployeeCreationSteps.Avatar}}" 
-                              IsExpanded="{Binding Steps, Converter={StaticResource EmployeeCreationsToBoolConverter}, ConverterParameter={x:Static enum:EmployeeCreationSteps.Avatar}}"  
+                              Header="Песрональная фотография" 
+                              IsEnabled="{Binding Steps, Converter={StaticResource EmployeeCreationsToBoolConverter}, ConverterParameter={x:Static enum:EmployeeCreationSteps.PersonalPhoto}}" 
+                              IsExpanded="{Binding Steps, Converter={StaticResource EmployeeCreationsToBoolConverter}, ConverterParameter={x:Static enum:EmployeeCreationSteps.PersonalPhoto}}"  
                               d:IsExpanded="True" Margin="5" Style="{StaticResource ModernExpanderStyle}">
-                        <hrus:Avatar/>
+                        <hrus:PersonalPhoto/>
                     </Expander>
 
                     <Expander Grid.Column="1" 

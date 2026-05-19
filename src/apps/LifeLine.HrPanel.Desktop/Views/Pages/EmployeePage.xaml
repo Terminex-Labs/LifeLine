@@ -7,7 +7,8 @@
       xmlns:pages="clr-namespace:LifeLine.HrPanel.Desktop.ViewModels.Pages" 
       xmlns:b="http://schemas.microsoft.com/xaml/behaviors" 
       xmlns:behaviors="clr-namespace:Shared.WPF.Resources.Behaviors;assembly=Shared.WPF" 
-      xmlns:hrus="clr-namespace:LifeLine.HrPanel.Desktop.Views.UserControls" xmlns:enum="clr-namespace:LifeLine.HrPanel.Desktop.Enums"
+      xmlns:hrus="clr-namespace:LifeLine.HrPanel.Desktop.Views.UserControls" 
+      xmlns:enum="clr-namespace:LifeLine.HrPanel.Desktop.Enums"
       d:DataContext="{d:DesignInstance Type=pages:EmployeePageVM}"
       mc:Ignorable="d" 
       d:Height="auto" d:Width="1500"
@@ -184,9 +185,9 @@
                             <ColumnDefinition Width="2*"/>
                         </Grid.ColumnDefinitions>
 
-                        <Expander Grid.Column="0" Header="Аватар" IsExpanded="True"
+                        <Expander Grid.Column="0" Header="Фотография" IsExpanded="True"
                                   Margin="5" Style="{StaticResource ModernExpanderStyle}">
-                            <hrus:Avatar HorizontalAlignment="Center"/>
+                            <hrus:PersonalPhoto HorizontalAlignment="Center"/>
                         </Expander>
 
                         <Expander Grid.Column="1"  IsExpanded="True"

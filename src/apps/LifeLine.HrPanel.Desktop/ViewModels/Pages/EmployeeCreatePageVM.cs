@@ -117,7 +117,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             _imageCompressionService = imageCompressionService;
 
             PersonalInfo = new();
-            Avatar = new(_fileDialogService, _imageCompressionService);
+            PersonalPhoto = new(_fileDialogService, _imageCompressionService);
             ContactInformation = new();
             PersonalDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes);
             EducationDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes, EducationLevels);
@@ -158,11 +158,11 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             set => SetProperty(ref _personalInfo, value);
         }
 
-        private AvatarVM? _avatar;
-        public AvatarVM? Avatar
+        private PersonalPhotoVM? _personalPhoto;
+        public PersonalPhotoVM? PersonalPhoto
         {
-            get => _avatar;
-            set => SetProperty(ref _avatar, value);
+            get => _personalPhoto;
+            set => SetProperty(ref _personalPhoto, value);
         }
 
         private ContactInformationVM? _сontactInformation;
@@ -219,7 +219,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             Func<Task<Result>> func = Steps switch
             {
                 EmployeeCreationSteps.PersonalInfo => async () => await CreateEmployeeAsync(),
-                EmployeeCreationSteps.Avatar => async () => await CreateAvatarAsync(),
+                EmployeeCreationSteps.PersonalPhoto => async () => await AddPersonalPhotoAsync(),
                 EmployeeCreationSteps.ContactInformation => async () => await CreateContactInformation(),
                 EmployeeCreationSteps.PersonalDocuments => async () => await CreatePersonalDocuments(),
                 EmployeeCreationSteps.EducationDocuments => async () => await CreateEducationDocuments(),
@@ -263,24 +263,24 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             return Result.Success();
         }
 
-        private async Task<Result> CreateAvatarAsync()
+        private async Task<Result> AddPersonalPhotoAsync()
         {
-            var avatarBytes = Avatar!.GetCompressedBytes();
-            var fileName = Avatar.GetFileName();
+            var avatarBytes = PersonalPhoto!.GetCompressedBytes();
+            var fileName = PersonalPhoto.GetFileName();
 
             if (avatarBytes == null || string.IsNullOrWhiteSpace(fileName))
                 return Result.Failure(Error.New(ErrorCode.Null, "Аватарка не нвыбрана!"));
 
-            var result = await _fileStorageService.UploadFileAsync
+            var fileResult = await _fileStorageService.UploadFileAsync
                 (
                     new UploadFileRequest
                         (
                             FileConst.BUCKET_NAME,
-                            nameof(Avatar),
+                            nameof(PersonalPhoto),
                             FileConst.BuildEmployeeFolder
                                 (
-                                    Avatar.EmployeeId!,
-                                    EmployeeFolderType.Avatar
+                                    PersonalPhoto.EmployeeId!,
+                                    EmployeeFolderType.PersonalPhoto
                                 ),
                             FilePath: null,
                             FileBytes: avatarBytes,
@@ -288,8 +288,20 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                         )
                 );
 
-            if (result.IsFailure)
-                return Result.Failure(result.Errors);
+            if (fileResult.IsFailure)
+                return Result.Failure(fileResult.Errors);
+
+            var dbResult = await _employeeService.AddPersonalPhoto
+                (
+                    PersonalPhoto.EmployeeId!, 
+                    new AddPersonalPhotoRequest
+                        (
+                            FileConst.BUCKET_NAME, fileResult.Value!.FileName
+                        )
+                );
+
+            if (dbResult.IsFailure)
+                return Result.Failure(dbResult.Errors);
 
             return Result.Success();
         }
@@ -682,7 +694,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         private void SetEmployeeId(string id)
         {
             PersonalInfo!.EmployeeId = id;
-            Avatar!.EmployeeId = id;
+            PersonalPhoto!.EmployeeId = id;
             ContactInformation!.EmployeeId = id;
             PersonalDocuments!.EmployeeId = id;
             EducationDocuments!.EmployeeId = id;
@@ -795,7 +807,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         private void ClearLocalLists()
         {
             PersonalInfo!.ClearProperty();
-            Avatar!.ClearProperty();
+            PersonalPhoto!.ClearProperty();
             ContactInformation!.ClearProperty();
 
             PersonalDocuments!.ClearProperty();

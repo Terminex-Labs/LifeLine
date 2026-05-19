@@ -1,11 +1,11 @@
-﻿<UserControl x:Class="LifeLine.HrPanel.Desktop.Views.UserControls.Avatar"
+﻿<UserControl x:Class="LifeLine.HrPanel.Desktop.Views.UserControls.PersonalPhoto"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:LifeLine.HrPanel.Desktop.Views.UserControls" 
              xmlns:features="clr-namespace:LifeLine.HrPanel.Desktop.ViewModels.Features" 
-             d:DataContext="{d:DesignInstance Type=features:AvatarVM}"
+             d:DataContext="{d:DesignInstance Type=features:PersonalPhotoVM}"
              xmlns:enum="clr-namespace:LifeLine.HrPanel.Desktop.Enums"
              mc:Ignorable="d" 
              d:Height="auto" 
@@ -16,13 +16,13 @@
         <Border BorderBrush="#386FD6" Background="{StaticResource App.MainColor}" BorderThickness="2" CornerRadius="10" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5">
             <StackPanel>
                 <Border BorderThickness="0 0 0 2" BorderBrush="#386FD6">
-                    <Image Source="{Binding Avatar.Ava}" d:Source="C:\Users\texno\Documents\Lightshot\Screenshot_4.png" Width="200" Height="200" Margin="5"/>
+                    <Image Source="{Binding PersonalPhoto.Ava}" d:Source="C:\Users\texno\Documents\Lightshot\Screenshot_4.png" Width="200" Height="200" Margin="5"/>
                 </Border>
                 <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0 2 0 2">
                     <Button Width="25" 
                             Background="#00DDDDDD" 
                             BorderBrush="#00707070" 
-                            Command="{Binding Avatar.SelectCommandAsync}">
+                            Command="{Binding PersonalPhoto.SelectCommandAsync}">
                         <Control Template="{StaticResource AddIcon}"/>
                         <Button.ToolTip>
                             <TextBlock Text="Добавить аватарку"/>
