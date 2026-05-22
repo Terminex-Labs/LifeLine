@@ -19,6 +19,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             _imageCompressionService = imageCompressionService;
 
             SelectCommandAsync = new RelayCommandAsync(Execute_SelectCommandAsync);
+            ClearImage = new RelayCommand(Execute_ClearImage);
         }
 
         public ImageSource? Photo
@@ -64,6 +65,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                     );
             }
         }
+
+        public RelayCommand? ClearImage { get; private set; }
+        private void Execute_ClearImage() => ClearProperty();
 
         public byte[]? GetCompressedBytes() => _compressedBytes;
         public string? GetFileName() => _fileName;

@@ -31,7 +31,12 @@
                     <Button Width="25" Background="#00DDDDDD" BorderBrush="#00707070" Margin="15 0 15 0" Command="{Binding ViewImageCommand}">
                         <Control Template="{StaticResource Magnifier}"/>
                     </Button>
-                    <Button Width="25" Background="#00DDDDDD" BorderBrush="#00707070" Foreground="#F06870" Command="{Binding DeleteImageCommand}">
+                    <Button Width="25" Background="#00DDDDDD" BorderBrush="#00707070" Foreground="#F06870" Command="{Binding PersonalPhoto.ClearImage}" ToolTip="Из CreateStep"
+                            Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.CreateStep}, UpdateSourceTrigger=PropertyChanged}">
+                        <Control Template="{StaticResource Trash}"/>
+                    </Button>
+                    <Button Width="25" Background="#00DDDDDD" BorderBrush="#00707070" Foreground="#F06870" Command="{Binding DeleteImageCommand}" ToolTip="Из бд"
+                            Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Create}, UpdateSourceTrigger=PropertyChanged}">
                         <Control Template="{StaticResource Trash}"/>
                     </Button>
                 </WrapPanel>
