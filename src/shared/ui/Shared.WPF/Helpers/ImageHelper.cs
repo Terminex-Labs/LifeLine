@@ -1,14 +1,50 @@
-﻿using System.IO;
-using System.Windows;
+﻿using System.Diagnostics;
 using System.Drawing;
-using System.Windows.Media;
 using System.Drawing.Imaging;
+using System.IO;
+using System.Net.Http;
+using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace Shared.WPF.Helpers
 {
     public class ImageHelper
     {
+        private static readonly HttpClient _httpClient = new();
+
+        public static async Task<ImageSource?> ImageFromUrlAsync(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                MessageBox.Show("Ссылка пуста!");
+                return null!;
+            }
+
+            try
+            {
+                return await Task.Run(async () =>
+                {
+                    var imageBytes = await _httpClient.GetByteArrayAsync(url);
+                    using var memoryStream = new MemoryStream(imageBytes);
+                    var bitmap = new BitmapImage();
+
+                    bitmap.BeginInit();
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.StreamSource = memoryStream;
+                    bitmap.EndInit();
+                    bitmap.Freeze();
+
+                    return (ImageSource)bitmap;
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ImageUtils] Ошибка при загрузке или создании изображения по URL '{url}': {ex.Message}");
+                return null;
+            }
+        }
+
         public static ImageSource? ToImageFromFilePath(string filePath)
         {
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))

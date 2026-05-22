@@ -45,7 +45,7 @@ namespace LifeLine.HrPanel.Desktop.Models
             set => SetProperty(ref _rating, value);
         }
 
-        private string? _avatar = model.Avatar;
+        private string? _avatar = model.PersonalPhoto;
         public string? Avatar
         {
             get => _avatar;
@@ -66,7 +66,7 @@ namespace LifeLine.HrPanel.Desktop.Models
             Patronymic = _model.Patronymic;
             DateEntry = _model.DateEntry;
             Rating = _model.Rating;
-            Avatar = _model.Avatar;
+            Avatar = _model.PersonalPhoto;
             Gender = _model.Gender.GenderName;
         }
 
@@ -79,7 +79,7 @@ namespace LifeLine.HrPanel.Desktop.Models
                 Patronymic = Patronymic,
                 DateEntry = DateEntry,
                 Rating = Rating,
-                Avatar = Avatar,
+                PersonalPhoto = Avatar,
                 Gender = new GenderDetailsResponseData(Guid.Parse(GenderId), Gender!)
             };
         }

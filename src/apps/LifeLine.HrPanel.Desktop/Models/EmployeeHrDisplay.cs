@@ -1,6 +1,7 @@
 ﻿using Shared.Contracts.Response.DirectoryService;
 using Shared.Contracts.Response.EmployeeService;
 using Shared.WPF.ViewModels.Abstract;
+using System.Windows.Media;
 
 namespace LifeLine.HrPanel.Desktop.Models
 {
@@ -35,7 +36,17 @@ namespace LifeLine.HrPanel.Desktop.Models
         public string DepartmentId => _model.Assignments.FirstOrDefault()!.DepartmentId;
         public string PositionId => _model.Assignments.FirstOrDefault()!.PositionId;
         public string StatusId => _model.Assignments.FirstOrDefault()!.StatusId;
-        public string? PersonalPhoto => _model.PersonalPhoto;
+
+        private ImageSource? _personalPhoto;
+        public ImageSource? PersonalPhoto
+        {
+            get => _personalPhoto;
+            set => SetProperty(ref _personalPhoto, value);
+        }
+
+        public void SetImage(ImageSource? image) => PersonalPhoto = image;
+
+        public string? PersonalPhotoUrlDB => _model.PersonalPhoto;
 
         private string _surname = null!;
         public string Surname

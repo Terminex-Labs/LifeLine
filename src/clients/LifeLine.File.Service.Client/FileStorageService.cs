@@ -4,6 +4,7 @@ using Shared.Kernel.Errors;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using Terminex.Common.Results;
 
 namespace LifeLine.File.Service.Client
@@ -11,6 +12,24 @@ namespace LifeLine.File.Service.Client
     internal class FileStorageService(HttpClient httpClient) : IFileStorageService
     {
         private readonly HttpClient _httpClient = httpClient;
+        private readonly JsonSerializerOptions _jsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
+
+        public async Task<Result<PresignedUrlResponse?>> GetPresignedUrlAsync(PresignedUrlRequest request)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("presigned-url", request, _jsonSerializerOptions);
+
+                if (!response.IsSuccessStatusCode)
+                    return Result<PresignedUrlResponse?>.Failure(Error.New(ErrorCode.NotFound, await response.Content.ReadAsStringAsync()));
+
+                return Result<PresignedUrlResponse?>.Success(await response.Content.ReadFromJsonAsync<PresignedUrlResponse>());
+            }
+            catch (Exception ex)
+            {
+                return Result<PresignedUrlResponse?>.Failure(Error.New(ErrorCode.NotFound, $"Ошибка получения: {ex.Message}"));
+            }
+        }
 
         public async Task<Result<UploadFileResponse?>> UploadFileAsync(UploadFileRequest request)
         {

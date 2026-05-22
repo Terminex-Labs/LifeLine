@@ -4,7 +4,6 @@ using Shared.WPF.Helpers;
 using Shared.WPF.Services.Conversion;
 using Shared.WPF.Services.FileDialog;
 using System.IO;
-using System.Threading.Tasks;
 using System.Windows.Media;
 
 namespace LifeLine.HrPanel.Desktop.ViewModels.Features

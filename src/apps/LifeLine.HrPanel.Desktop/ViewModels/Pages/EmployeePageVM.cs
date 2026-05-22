@@ -18,8 +18,8 @@ using LifeLine.Employee.Service.Client.Services.Specialty;
 using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Enums;
 using LifeLine.HrPanel.Desktop.Models;
+using LifeLine.HrPanel.Desktop.Services.GenerateImage;
 using LifeLine.HrPanel.Desktop.ViewModels.Features;
-using LifeLine.HrPanel.Desktop.Views.UserControls;
 using Shared.Contracts.Request.EmployeeService.Assignment;
 using Shared.Contracts.Request.EmployeeService.ContactInformation;
 using Shared.Contracts.Request.EmployeeService.EducationDocument;
@@ -48,6 +48,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         private readonly IFileDialogService _fileDialogService;
         private readonly IFileStorageService _fileStorageService;
+        private readonly IGenerateImageService _generateImageService;
         private readonly IImageCompressionService _imageCompressionService;
         private readonly IDocumentConversionService _documentConversionService;
 
@@ -75,6 +76,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
                 IFileDialogService fileDialogService,
                 IFileStorageService fileStorageService,
+                IGenerateImageService generateImageService,
                 IImageCompressionService imageCompressionService,
                 IDocumentConversionService documentConversionService,
 
@@ -101,6 +103,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             _fileDialogService = fileDialogService;
             _fileStorageService = fileStorageService;
+            _generateImageService = generateImageService;
             _imageCompressionService = imageCompressionService;
             _documentConversionService = documentConversionService;
 
@@ -447,6 +450,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             PersonalInfo!.Patronymic = details.Patronymic;
             PersonalInfo.Gender = new GenderResponse(details.Gender.GenderId.ToString(), details.Gender.GenderName);
 
+            PersonalPhoto.EmployeeId = details.EmployeeId.ToString();
+            PersonalPhoto.Ava = await _generateImageService.GenerateAsync(details.PersonalPhoto);
+
             ContactInformation.EmployeeId = details.EmployeeId.ToString();
             ContactInformation.PersonalPhone = details.ContactInformation.PersonalPhone;
             ContactInformation.CorporatePhone = details.ContactInformation.CorporatePhone;
@@ -661,6 +667,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                     display.SetPosition(item.Assignments.FirstOrDefault()!.PositionId);
                     display.SetStatus(item.Assignments.FirstOrDefault()!.StatusId);
                 }
+
+                display.SetImage(await _generateImageService.GenerateAsync(item.PersonalPhoto));
 
                 EmployeeHrs.Add(display);
             }
