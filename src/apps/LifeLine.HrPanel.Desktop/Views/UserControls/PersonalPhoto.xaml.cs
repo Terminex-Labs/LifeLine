@@ -1,15 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using LifeLine.HrPanel.Desktop.Enums;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace LifeLine.HrPanel.Desktop.Views.UserControls
 {
@@ -22,5 +13,22 @@ namespace LifeLine.HrPanel.Desktop.Views.UserControls
         {
             InitializeComponent();
         }
+
+        #region ActionProperty
+
+        public static readonly DependencyProperty ActionProperty =
+            DependencyProperty.Register(
+                nameof(Action),
+                typeof(TypeAction),
+                typeof(PersonalPhoto),
+                new FrameworkPropertyMetadata(TypeAction.None, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+        public TypeAction Action
+        {
+            get => (TypeAction)GetValue(ActionProperty);
+            set => SetValue(ActionProperty, value);
+        }
+
+        #endregion
     }
 }

@@ -117,7 +117,7 @@
                               IsEnabled="{Binding Steps, Converter={StaticResource EmployeeCreationsToBoolConverter}, ConverterParameter={x:Static enum:EmployeeCreationSteps.PersonalPhoto}}" 
                               IsExpanded="{Binding Steps, Converter={StaticResource EmployeeCreationsToBoolConverter}, ConverterParameter={x:Static enum:EmployeeCreationSteps.PersonalPhoto}}"  
                               d:IsExpanded="True" Margin="5" Style="{StaticResource ModernExpanderStyle}">
-                        <hrus:PersonalPhoto/>
+                        <hrus:PersonalPhoto Action="CreateStep"/>
                     </Expander>
 
                     <Expander Grid.Column="1" 

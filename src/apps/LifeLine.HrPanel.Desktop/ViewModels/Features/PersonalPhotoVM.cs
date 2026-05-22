@@ -21,7 +21,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             SelectCommandAsync = new RelayCommandAsync(Execute_SelectCommandAsync);
         }
 
-        public ImageSource? Ava
+        public ImageSource? Photo
         {
             get => field;
             set => SetProperty(ref field, value);
@@ -51,7 +51,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                     );
 
                 _fileName = Path.GetFileName(path);
-                Ava = ImageHelper.ToImageFromFilePath(path);
+                Photo = ImageHelper.ToImageFromFilePath(path);
             }
             catch (Exception ex)
             {
@@ -70,7 +70,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
 
         public void ClearProperty()
         {
-            Ava = null;
+            Photo = null;
             _compressedBytes = null;
             _fileName = string.Empty;
         }

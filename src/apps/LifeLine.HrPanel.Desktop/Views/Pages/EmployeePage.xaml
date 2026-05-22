@@ -189,7 +189,7 @@
 
                         <Expander Grid.Column="0" Header="Фотография" IsExpanded="True"
                                   Margin="5" Style="{StaticResource ModernExpanderStyle}">
-                            <hrus:PersonalPhoto HorizontalAlignment="Center"/>
+                            <hrus:PersonalPhoto Action="Create" HorizontalAlignment="Center"/>
                         </Expander>
 
                         <Expander Grid.Column="1"  IsExpanded="True"

@@ -296,7 +296,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                     PersonalPhoto.EmployeeId!, 
                     new AddPersonalPhotoRequest
                         (
-                            FileConst.BUCKET_NAME, fileResult.Value!.FileName
+                            FileConst.BUCKET_NAME, 
+                            fileResult.Value!.FileName
                         )
                 );
 

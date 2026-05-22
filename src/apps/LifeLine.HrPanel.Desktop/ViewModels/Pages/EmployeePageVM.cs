@@ -136,6 +136,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             UpdateEmployeePersonalInfoCommand = new RelayCommandAsync(Execute_UpdateEmployeePersonalInfoCommand, CanExecute_UpdateEmployeePersonalInfoCommand);
 
+            UploadPersonalPhoto = new RelayCommandAsync(Execute_UploadPersonalPhoto);
+
             CreatePersonalDocumentCommand = new RelayCommandAsync(Execute_CreatePersonalDocumentCommand, CanExecute_CreatePersonalDocumentCommand);
             UpdatePersonalDocumentCommand = new RelayCommandAsync(Execute_UpdatePersonalDocumentCommand, CanExecute_UpdatePersonalDocumentCommand);
             DeletePersonalDocumentCommand = new RelayCommandAsync<PersonalDocumentDisplay>(Execute_DeletePersonalDocumentCommand, CanExecute_DeletePersonalDocumentCommand);
@@ -451,7 +453,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             PersonalInfo.Gender = new GenderResponse(details.Gender.GenderId.ToString(), details.Gender.GenderName);
 
             PersonalPhoto.EmployeeId = details.EmployeeId.ToString();
-            PersonalPhoto.Ava = await _generateImageService.GenerateAsync(details.PersonalPhoto);
+            PersonalPhoto.Photo = await _generateImageService.GenerateAsync(details.PersonalPhoto);
 
             ContactInformation.EmployeeId = details.EmployeeId.ToString();
             ContactInformation.PersonalPhone = details.ContactInformation.PersonalPhone;
@@ -976,6 +978,68 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             }
         }
         private bool CanExecute_UpdateEmployeePersonalInfoCommand() => true;
+
+        #endregion
+
+        #region EditPersonalPhoto
+
+        public RelayCommandAsync UploadPersonalPhoto { get; private set; }
+        private async Task Execute_UploadPersonalPhoto()
+        {
+            var avatarBytes = PersonalPhoto!.GetCompressedBytes();
+            var fileName = PersonalPhoto.GetFileName();
+
+            if (avatarBytes == null || string.IsNullOrWhiteSpace(fileName))
+            {
+                MessageBox.Show("Аватарка не нвыбрана!");
+                return;
+            }
+
+            var fileResult = await _fileStorageService.UploadFileAsync
+                (
+                    new UploadFileRequest
+                        (
+                            FileConst.BUCKET_NAME,
+                            nameof(PersonalPhoto),
+                            FileConst.BuildEmployeeFolder
+                                (
+                                    PersonalPhoto.EmployeeId!,
+                                    EmployeeFolderType.PersonalPhoto
+                                ),
+                            FilePath: null,
+                            FileBytes: avatarBytes,
+                            FileName: fileName
+                        )
+                );
+
+            if (fileResult.IsFailure)
+            {
+                foreach (var item in fileResult.Errors)
+                    MessageBox.Show("item");
+
+                return;
+            }
+
+            var dbResult = await _employeeService.AddPersonalPhoto
+                (
+                    PersonalPhoto.EmployeeId!,
+                    new AddPersonalPhotoRequest
+                        (
+                            FileConst.BUCKET_NAME, 
+                            fileResult.Value!.FileName
+                        )
+                );
+
+            if (dbResult.IsFailure)
+            {
+                foreach (var item in dbResult.Errors)
+                    MessageBox.Show("item");
+
+                return;
+            }
+
+            EmployeeHrs.FirstOrDefault(x => x.Id == PersonalPhoto.EmployeeId)!.PersonalPhoto = PersonalPhoto.Photo;
+        }
 
         #endregion
 

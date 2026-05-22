@@ -16,7 +16,7 @@
         <Border BorderBrush="#386FD6" Background="{StaticResource App.MainColor}" BorderThickness="2" CornerRadius="10" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5">
             <StackPanel>
                 <Border BorderThickness="0 0 0 2" BorderBrush="#386FD6">
-                    <Image Source="{Binding PersonalPhoto.Ava}" d:Source="C:\Users\texno\Documents\Lightshot\Screenshot_4.png" Width="200" Height="200" Margin="5"/>
+                    <Image Source="{Binding PersonalPhoto.Photo}" d:Source="C:\Users\texno\Documents\Lightshot\Screenshot_4.png" Width="200" Height="200" Margin="5"/>
                 </Border>
                 <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0 2 0 2">
                     <Button Width="25" 
@@ -38,7 +38,15 @@
                 
                 <Button Content="Добавить аватар" Height="40"
                         HorizontalAlignment="Stretch" VerticalAlignment="Center" 
-                        Command="{Binding ExecuteStepCommand}" CommandParameter="{x:Static enum:EmployeeCreationSteps.ContactInformation}"
+                        Command="{Binding ExecuteStepCommand}" 
+                        CommandParameter="{x:Static enum:EmployeeCreationSteps.ContactInformation}"
+                        Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.CreateStep}, UpdateSourceTrigger=PropertyChanged}"
+                        Style="{StaticResource App.Button}" Margin="0 0 0 0"/>
+                
+                <Button Content="Сохранить" Height="40"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center" 
+                        Command="{Binding UploadPersonalPhoto}" 
+                        Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Create}, UpdateSourceTrigger=PropertyChanged}"
                         Style="{StaticResource App.Button}" Margin="0 0 0 0"/>
             </StackPanel>
         </Border>
