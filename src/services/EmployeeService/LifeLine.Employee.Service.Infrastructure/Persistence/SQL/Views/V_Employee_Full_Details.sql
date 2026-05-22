@@ -6,7 +6,7 @@ SELECT
     e."Patronymic",
     e."DateEntry",
     e."Rating",
-    e."Avatar",
+    e."PersonalPhoto",
     e."IsActive",
     
     jsonb_build_object(

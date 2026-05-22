@@ -21,7 +21,7 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.Get.GetFullDe
                     employeeDetails.Patronymic,
                     employeeDetails.DateEntry,
                     employeeDetails.Rating,
-                    employeeDetails.Avatar,
+                    employeeDetails.PersonalPhoto,
 
                     new GenderDetailsResponseData(employeeDetails.Gender.GenderId, employeeDetails.Gender.GenderName),
 

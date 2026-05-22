@@ -20,7 +20,7 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.Get.GetAllFor
                             x.Surname, 
                             x.Name, 
                             x.Patronymic,
-                            x.ImageKey,
+                            x.PersonalPhoto,
                             x.IsActive,
                             x.Assignments.Select
                                 (

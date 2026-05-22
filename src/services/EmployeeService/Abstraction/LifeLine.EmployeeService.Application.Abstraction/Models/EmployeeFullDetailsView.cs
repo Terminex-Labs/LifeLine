@@ -8,7 +8,7 @@
             string? Patronymic,
             DateTime DateEntry,
             double Rating,
-            string? Avatar,
+            string? PersonalPhoto,
 
             GenderDetailsViewData Gender,
             ContactInformationDetailsViewData? ContactInformation,

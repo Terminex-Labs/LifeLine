@@ -4,7 +4,7 @@
         e."Surname",
         e."Name",
         e."Patronymic",
-        e."Avatar" AS "ImageKey",
+        e."PersonalPhoto",
         e."IsActive",
 
         COALESCE(

@@ -35,7 +35,7 @@ namespace LifeLine.HrPanel.Desktop.Models
         public string DepartmentId => _model.Assignments.FirstOrDefault()!.DepartmentId;
         public string PositionId => _model.Assignments.FirstOrDefault()!.PositionId;
         public string StatusId => _model.Assignments.FirstOrDefault()!.StatusId;
-        public string? ImageKey => _model.ImageKey;
+        public string? PersonalPhoto => _model.PersonalPhoto;
 
         private string _surname = null!;
         public string Surname
