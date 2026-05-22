@@ -32,6 +32,7 @@ using Shared.Contracts.Response.EmployeeService;
 using Shared.WPF.Commands;
 using Shared.WPF.Enums;
 using Shared.WPF.Extensions;
+using Shared.WPF.Helpers;
 using Shared.WPF.Services.Conversion;
 using Shared.WPF.Services.FileDialog;
 using Shared.WPF.Services.NavigationService.Pages;
@@ -137,6 +138,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             UpdateEmployeePersonalInfoCommand = new RelayCommandAsync(Execute_UpdateEmployeePersonalInfoCommand, CanExecute_UpdateEmployeePersonalInfoCommand);
 
             UploadPersonalPhoto = new RelayCommandAsync(Execute_UploadPersonalPhoto);
+            DeletePersonalPhotoCommand = new RelayCommandAsync(Execute_DeletePersonalPhotoCommand);
 
             CreatePersonalDocumentCommand = new RelayCommandAsync(Execute_CreatePersonalDocumentCommand, CanExecute_CreatePersonalDocumentCommand);
             UpdatePersonalDocumentCommand = new RelayCommandAsync(Execute_UpdatePersonalDocumentCommand, CanExecute_UpdatePersonalDocumentCommand);
@@ -453,6 +455,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             PersonalInfo.Gender = new GenderResponse(details.Gender.GenderId.ToString(), details.Gender.GenderName);
 
             PersonalPhoto.EmployeeId = details.EmployeeId.ToString();
+            PersonalPhoto.PhotoUrl = details.PersonalPhoto;
             PersonalPhoto.Photo = await _generateImageService.GenerateAsync(details.PersonalPhoto);
 
             ContactInformation.EmployeeId = details.EmployeeId.ToString();
@@ -983,6 +986,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         #region EditPersonalPhoto
 
+        // UPLOAD
         public RelayCommandAsync UploadPersonalPhoto { get; private set; }
         private async Task Execute_UploadPersonalPhoto()
         {
@@ -1039,6 +1043,39 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             }
 
             EmployeeHrs.FirstOrDefault(x => x.Id == PersonalPhoto.EmployeeId)!.PersonalPhoto = PersonalPhoto.Photo;
+        }
+
+        // DELETE
+        public RelayCommandAsync DeletePersonalPhotoCommand { get; private set; }
+        private async Task Execute_DeletePersonalPhotoCommand()
+        {
+            var dbResult = await _employeeService.DeletePersonalPhoto(PersonalPhoto!.EmployeeId!);
+
+            if (dbResult.IsFailure)
+            {
+                MessageBox.Show($"Ошибка удаления файла из базы данных!\n{dbResult.StringMessage}");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(PersonalPhoto.PhotoUrl))
+                return;
+
+            var (BucketName, FileName) = S3UrlParser.Parse(PersonalPhoto.PhotoUrl);
+
+            var fileResult = await _fileStorageService.DeleteFileAsync(new DeleteFileRequest(BucketName!, FileName!));
+
+            if (fileResult.IsFailure)
+            {
+                MessageBox.Show($"Ошибка удаления файла из S3 хранилища!\n{fileResult.StringMessage}");
+                return;
+            }
+
+            PersonalPhoto.ClearProperty();
+
+            var employee = EmployeeHrs.FirstOrDefault(x => x.Id == PersonalPhoto.EmployeeId)!;
+
+            employee.PersonalPhoto = null;
+            employee.PersonalPhotoUrlDB = null;
         }
 
         #endregion

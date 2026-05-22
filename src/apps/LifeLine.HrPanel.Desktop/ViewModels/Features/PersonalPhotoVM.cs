@@ -22,6 +22,12 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             ClearImage = new RelayCommand(Execute_ClearImage);
         }
 
+        public string? PhotoUrl
+        {
+            get => field;
+            set => SetProperty(ref field, value);
+        }
+
         public ImageSource? Photo
         {
             get => field;
@@ -74,6 +80,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
 
         public void ClearProperty()
         {
+            PhotoUrl = string.Empty;
             Photo = null;
             _compressedBytes = null;
             _fileName = string.Empty;

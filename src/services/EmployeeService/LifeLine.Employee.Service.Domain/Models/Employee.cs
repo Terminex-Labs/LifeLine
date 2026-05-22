@@ -135,6 +135,8 @@ namespace LifeLine.Employee.Service.Domain.Models
                 PersonalPhoto = personalPhoto;
         }
 
+        public void DeletePersonalPhoto() => PersonalPhoto = null;
+
         public void Activate() => IsActive = true;
         public void Deactivate() => IsActive = false;
 

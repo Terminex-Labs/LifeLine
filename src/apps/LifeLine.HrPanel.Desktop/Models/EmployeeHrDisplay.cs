@@ -30,23 +30,32 @@ namespace LifeLine.HrPanel.Desktop.Models
         private readonly IReadOnlyCollection<PositionDisplay> _positions;
         private readonly IReadOnlyCollection<StatusDisplay> _statuses;
 
-        private readonly EmployeeHrItemResponse _model;
+        private EmployeeHrItemResponse _model;
 
         public string Id => _model.Id;
         public string DepartmentId => _model.Assignments.FirstOrDefault()!.DepartmentId;
         public string PositionId => _model.Assignments.FirstOrDefault()!.PositionId;
         public string StatusId => _model.Assignments.FirstOrDefault()!.StatusId;
 
-        private ImageSource? _personalPhoto;
         public ImageSource? PersonalPhoto
         {
-            get => _personalPhoto;
-            set => SetProperty(ref _personalPhoto, value);
+            get => field;
+            set => SetProperty(ref field, value);
         }
-
         public void SetImage(ImageSource? image) => PersonalPhoto = image;
 
-        public string? PersonalPhotoUrlDB => _model.PersonalPhoto;
+        public string? PersonalPhotoUrlDB
+        {
+            get => _model.PersonalPhoto;
+            set
+            {
+                if (_model.PersonalPhoto != value)
+                {
+                    _model = _model with { PersonalPhoto = value };
+                    SetProperty(ref field, value);
+                }
+            }
+        }
 
         private string _surname = null!;
         public string Surname

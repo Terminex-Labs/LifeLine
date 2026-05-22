@@ -22,7 +22,22 @@ namespace LifeLine.Employee.Service.Client.Services.Employee
             }
             catch (Exception ex)
             {
-                return Result.Failure(new Error(AppErrors.CreateHttp, $"Произошла ошибка при сохранении аватара пользователя!\n{ex}"));
+                return Result.Failure(new Error(AppErrors.CreateHttp, $"Произошла ошибка при сохранении персональной фотографии сотрудника!\n{ex}"));
+            }
+        }
+
+		public async Task<Result> DeletePersonalPhoto(string employeeId)
+		{
+			try
+			{
+				var response = await HttpClient.DeleteAsync($"{Url}/{employeeId}/delete-personal-photo");
+				response.EnsureSuccessStatusCode();
+
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure(new Error(AppErrors.CreateHttp, $"Произошла ошибка при удалении персональной фотографии сотрудника!\n{ex}"));
             }
         }
 

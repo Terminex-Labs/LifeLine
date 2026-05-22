@@ -31,6 +31,23 @@ namespace LifeLine.File.Service.Client
             }
         }
 
+        public async Task<Result> DeleteFileAsync(DeleteFileRequest request)
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync($"/files/{request.BucketName}/{request.FileName}");
+
+                if (!response.IsSuccessStatusCode)
+                    return Result.Failure(Error.New(ErrorCode.NotFound, await response.Content.ReadAsStringAsync()));
+
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure(Error.New(ErrorCode.NotFound, $"Ошибка получения: {ex.Message}"));
+            }
+        }
+
         public async Task<Result<UploadFileResponse?>> UploadFileAsync(UploadFileRequest request)
         {
             using var formData = new MultipartFormDataContent

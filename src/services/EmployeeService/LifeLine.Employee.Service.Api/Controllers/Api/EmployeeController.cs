@@ -4,6 +4,7 @@ using LifeLine.Employee.Service.Application.Features.Employees.Get.GetAll;
 using LifeLine.Employee.Service.Application.Features.Employees.Get.GetAllForHr;
 using LifeLine.Employee.Service.Application.Features.Employees.Get.GetFullDetailsForEmployee;
 using LifeLine.Employee.Service.Application.Features.Employees.PersonalPhoto.Add;
+using LifeLine.Employee.Service.Application.Features.Employees.PersonalPhoto.Delete;
 using LifeLine.Employee.Service.Application.Features.Employees.SoftDelete;
 using LifeLine.Employee.Service.Application.Features.Employees.Update.UpdateEmployee;
 using LifeLine.Employee.Service.Application.Features.Employees.Update.UpdateEmployeeGenderId;
@@ -13,6 +14,7 @@ using LifeLine.Employee.Service.Application.Features.Employees.Update.UpdateEmpl
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Contracts.Request.EmployeeService.Employee;
+using Shared.Contracts.Request.Files;
 
 namespace LifeLine.Employee.Service.Api.Controllers.Api
 {
@@ -66,6 +68,20 @@ namespace LifeLine.Employee.Service.Api.Controllers.Api
         public async Task<IActionResult> AddPersonalPhoto([FromRoute] Guid id, [FromBody] AddPersonalPhotoRequest request, CancellationToken cancellationToken = default)
         {
             var command = new AddPersonalPhotoCommand(id, request.BucketName, request.FileName);
+
+            var result = await _mediator.Send(command, cancellationToken);
+
+            return result.Match<IActionResult>
+                (
+                    onSuccess: () => Ok(),
+                    onFailure: errors => BadRequest(errors)
+                );
+        }
+
+        [HttpDelete("{id}/delete-personal-photo")]
+        public async Task<IActionResult> DeletePersonalPhoto([FromRoute] Guid id, CancellationToken cancellationToken = default)
+        {
+            var command = new DeletePersonalPhotoCommand(id);
 
             var result = await _mediator.Send(command, cancellationToken);
 
