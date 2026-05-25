@@ -41,7 +41,8 @@ namespace LifeLine.Employee.Service.Api.Controllers.Api
                                     Guid.Parse(x.DocumentTypeId),
                                     x.DocumentNumber,
                                     x.DocumentSeries,
-                                    null
+                                    x.BucketName,
+                                    x.FileName
                                 )
                         )
                     ]

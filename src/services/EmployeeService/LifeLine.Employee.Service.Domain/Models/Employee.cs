@@ -516,7 +516,8 @@ namespace LifeLine.Employee.Service.Domain.Models
                 Guid documentTypeId,
                 string documentNumber,
                 string? documentSeries,
-                ImageKey? fileKey
+                string? bucketName,
+                string? fileName
             )
         {
             var personalDocument = PersonalDocument.Create
@@ -525,7 +526,8 @@ namespace LifeLine.Employee.Service.Domain.Models
                     documentTypeId,
                     documentNumber,
                     documentSeries,
-                    fileKey
+                    bucketName,
+                    fileName
                 );
 
             _personalDocuments.Add(personalDocument);

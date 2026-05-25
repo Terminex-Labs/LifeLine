@@ -29,6 +29,7 @@ using Shared.Contracts.Request.EmployeeService.PersonalDocument;
 using Shared.Contracts.Request.EmployeeService.WorkPermit;
 using Shared.Contracts.Request.Files;
 using Shared.Contracts.Response.EmployeeService;
+using Shared.Contracts.Response.Files;
 using Shared.WPF.Commands;
 using Shared.WPF.Enums;
 using Shared.WPF.Extensions;
@@ -1129,73 +1130,79 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync CreatePersonalDocumentCommand { get; private set; }
         private async Task Execute_CreatePersonalDocumentCommand()
         {
-            var personalDocumentService = _personalDocumentApiServiceFactory.Create(PersonalDocuments!.EmployeeId!);
-
-            var dbResult = await personalDocumentService.CreateManyAsync
-                (
-                    new CreateManyPersonalDocumentsRequest
-                        (
-                            [.. PersonalDocuments.LocalPersonalDocuments.Where(x => x.SaveStatus == SaveStatus.Local)
-                                .Select
-                                (x =>
-                                    new CreateDataPersonalDocumentRequest
-                                    (
-                                        x.DocumentTypeId.ToString(),
-                                        x.DocumentNumber,
-                                        x.DocumentSeries,
-                                        null
-                                    )
-                                )
-                            ]
-                        )
-                );
-
-            if (dbResult.IsFailure)
+            if (PersonalDocuments == null)
             {
-                MessageBox.Show($"{dbResult.Errors}");
+                MessageBox.Show("Данные отсутствуют!");
                 return;
             }
 
-            var filesToUpload = PersonalDocuments.LocalPersonalDocuments.Where(x => x.HasFileForUpload)
-                .Select
-                    (
-                        x => new UploadFilesDataRequest
-                            (
-                                BucketName: FileConst.BUCKET_NAME,
-                                AdditionalName: x.DocumentType.Name,
-                                SubFolder: FileConst.BuildEmployeeFolder
-                                    (
-                                        PersonalDocuments.EmployeeId!,
-                                        EmployeeFolderType.PersonalDocument
-                                    ),
-                                FilePath: null,
-                                FileBytes: x.FileBytes,
-                                FileName: x.FileName,
-                                ContentType: x.ContentType ?? "application/pdf"
-                            )
-                    )
-                    .Where(x => x != null)
-                    .ToArray();
+            var documentsToSave = PersonalDocuments.LocalPersonalDocuments
+                .Where(x => x.SaveStatus == SaveStatus.Local).ToList();
 
-            if (filesToUpload.Any())
+            if (documentsToSave.Count == 0)
+                return;
+
+            var documentsWithFiles = documentsToSave.Where(x => x.HasFileForUpload).ToList();
+
+            IReadOnlyList<UploadFileResponse>? uploadResponses = null;
+
+            if (documentsWithFiles.Count > 0)
             {
-                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(filesToUpload.ToList()!));
+                var uploadRequests = documentsWithFiles
+                    .Select(doc => new UploadFilesDataRequest
+                        (
+                            BucketName: FileConst.BUCKET_NAME,
+                            AdditionalName: doc.DocumentType.Name,
+                            SubFolder: FileConst.BuildEmployeeFolder
+                                (
+                                    PersonalDocuments.EmployeeId!, 
+                                    EmployeeFolderType.PersonalDocument
+                                ),
+                            FilePath: null,
+                            FileBytes: doc.FileBytes,
+                            FileName: doc.FileName,
+                            ContentType: doc.ContentType ?? "application/pdf"
+                        )).ToList();
+
+                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(uploadRequests));
 
                 if (uploadResult.IsFailure)
                 {
-                    MessageBox.Show($"{uploadResult.Errors}");
+                    MessageBox.Show(uploadResult.StringMessage);
                     return;
                 }
+
+                uploadResponses = uploadResult.Value;
             }
 
-            foreach (var item in PersonalDocuments.LocalPersonalDocuments)
-                item.SetSaveStatus(SaveStatus.DataBase);
+            var uploadedFileNames = new Queue<string>(uploadResponses?.Select(f => f.FileName) ?? Array.Empty<string>());
+
+            var dbRequests = documentsToSave
+                .Select(doc => new CreateDataPersonalDocumentRequest
+                (
+                    doc.DocumentTypeId.ToString(),
+                    doc.DocumentNumber,
+                    doc.DocumentSeries,
+                    FileConst.BUCKET_NAME,
+                    doc.HasFileForUpload && uploadedFileNames.TryDequeue(out var fileName) ? fileName : null
+                )).ToArray();
+
+            var service = _personalDocumentApiServiceFactory.Create(PersonalDocuments.EmployeeId!);
+            var dbResult = await service.CreateManyAsync(new CreateManyPersonalDocumentsRequest([.. dbRequests]));
+
+            if (dbResult.IsFailure)
+            {
+                MessageBox.Show(dbResult.StringMessage);
+                return;
+            }
+
+            foreach (var doc in documentsToSave)
+                doc.SetSaveStatus(SaveStatus.DataBase);
 
             PersonalDocuments.PersonalDocumentsView.Refresh();
             PersonalDocuments.ClearProperty();
         }
         private bool CanExecute_CreatePersonalDocumentCommand() => true;
-            //=> PersonalDocuments!.DocumentType != null && !string.IsNullOrWhiteSpace(PersonalDocuments!.Number);
 
         // UPDATE
         public RelayCommandAsync UpdatePersonalDocumentCommand { get; private set; }
