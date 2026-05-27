@@ -61,7 +61,16 @@ namespace LifeLine.Employee.Service.Api.Controllers.Api
         public async Task<IActionResult> Update([FromRoute] Guid employeeId, [FromRoute] Guid personalDocumentId, [FromBody] UpdatePersonalDocumentRequest request, CancellationToken cancellationToken = default)
         {
             Console.WriteLine("Пришло");
-            var command = new UpdatePersonalDocumentCommand(personalDocumentId.ToString(), employeeId.ToString(), request.DocumentTypeId, request.DocumentNumber, request.DocumentSeries);
+            var command = new UpdatePersonalDocumentCommand
+                (
+                    personalDocumentId.ToString(), 
+                    employeeId.ToString(), 
+                    request.DocumentTypeId, 
+                    request.DocumentNumber, 
+                    request.DocumentSeries,
+                    request.BucketName,
+                    request.FileName
+                );
 
             var result = await _mediator.Send(command, cancellationToken);
 

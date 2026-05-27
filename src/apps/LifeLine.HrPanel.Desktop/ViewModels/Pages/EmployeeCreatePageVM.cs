@@ -344,13 +344,13 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             if (documentsToSave.Count == 0)
                 return Result.Failure(Error.Validation("Документы для сохранения отсутствуют!"));
 
-            var documentsWithFiles = documentsToSave.Where(x => x.HasFileForUpload).ToList();
+            //var documentsWithFiles = documentsToSave.Where(x => x.HasFileForUpload).ToList();
 
             IReadOnlyList<UploadFileResponse>? uploadResponses = null;
 
-            if (documentsWithFiles.Count > 0)
+            if (documentsToSave.Count > 0)
             {
-                var uploadRequests = documentsWithFiles
+                var uploadRequests = documentsToSave
                     .Select(doc => new UploadFilesDataRequest
                         (
                             BucketName: FileConst.BUCKET_NAME,
@@ -383,7 +383,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                     doc.DocumentNumber,
                     doc.DocumentSeries,
                     FileConst.BUCKET_NAME,
-                    doc.HasFileForUpload && uploadedFileNames.TryDequeue(out var fileName) ? fileName : null
+                    uploadedFileNames.TryDequeue(out var fileName) ? fileName : null
                 )).ToArray();
 
             var service = _personalDocumentApiServiceFactory.Create(PersonalDocuments.EmployeeId!);

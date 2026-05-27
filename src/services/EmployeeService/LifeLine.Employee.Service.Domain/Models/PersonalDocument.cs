@@ -62,5 +62,11 @@ namespace LifeLine.Employee.Service.Domain.Models
             if (documentSeries != DocumentSeries)
                 DocumentSeries = documentSeries;
         }
+
+        internal void UpdateFileKey(FileUrl? fileUrl)
+        {
+            if (fileUrl != ImageKey)
+                ImageKey = fileUrl;
+        }
     }
 }

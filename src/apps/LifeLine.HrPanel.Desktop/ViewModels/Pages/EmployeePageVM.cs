@@ -20,6 +20,7 @@ using LifeLine.HrPanel.Desktop.Enums;
 using LifeLine.HrPanel.Desktop.Models;
 using LifeLine.HrPanel.Desktop.Services.GenerateImage;
 using LifeLine.HrPanel.Desktop.ViewModels.Features;
+using LifeLine.HrPanel.Desktop.Views.UserControls;
 using Shared.Contracts.Request.EmployeeService.Assignment;
 using Shared.Contracts.Request.EmployeeService.ContactInformation;
 using Shared.Contracts.Request.EmployeeService.EducationDocument;
@@ -39,7 +40,10 @@ using Shared.WPF.Services.FileDialog;
 using Shared.WPF.Services.NavigationService.Pages;
 using Shared.WPF.ViewModels.Abstract;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Xml.Linq;
 using Terminex.Common.Results;
 
 namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
@@ -501,8 +505,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                                             x.PersonalDocumentId,
                                             x.PersonalDocumentTypeId,
                                             x.PersonalDocumentNumber,
-                                            x.PersonalDocumentSeries
-                                        ), DocumentTypes, string.Empty, SaveStatus.DataBase
+                                            x.PersonalDocumentSeries,
+                                            x.PersonalDocumentFileKey
+                                        ), DocumentTypes, SaveStatus.DataBase
                                 )
                         ).ToList()
                 );
@@ -1011,7 +1016,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                                     PersonalPhoto.EmployeeId!,
                                     EmployeeFolderType.PersonalPhoto
                                 ),
-                            FilePath: null,
+                            //FilePath: null,
                             FileBytes: avatarBytes,
                             FileName: fileName
                         )
@@ -1019,9 +1024,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             if (fileResult.IsFailure)
             {
-                foreach (var item in fileResult.Errors)
-                    MessageBox.Show("item");
-
+                MessageBox.Show(fileResult.StringMessage);
                 return;
             }
 
@@ -1037,9 +1040,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             if (dbResult.IsFailure)
             {
-                foreach (var item in dbResult.Errors)
-                    MessageBox.Show("item");
-
+                MessageBox.Show(dbResult.StringMessage);
                 return;
             }
 
@@ -1142,13 +1143,11 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             if (documentsToSave.Count == 0)
                 return;
 
-            var documentsWithFiles = documentsToSave.Where(x => x.HasFileForUpload).ToList();
-
             IReadOnlyList<UploadFileResponse>? uploadResponses = null;
 
-            if (documentsWithFiles.Count > 0)
+            if (documentsToSave.Count > 0)
             {
-                var uploadRequests = documentsWithFiles
+                var uploadRequests = documentsToSave
                     .Select(doc => new UploadFilesDataRequest
                         (
                             BucketName: FileConst.BUCKET_NAME,
@@ -1158,7 +1157,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                                     PersonalDocuments.EmployeeId!, 
                                     EmployeeFolderType.PersonalDocument
                                 ),
-                            FilePath: null,
+                            //FilePath: null,
                             FileBytes: doc.FileBytes,
                             FileName: doc.FileName,
                             ContentType: doc.ContentType ?? "application/pdf"
@@ -1184,7 +1183,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                     doc.DocumentNumber,
                     doc.DocumentSeries,
                     FileConst.BUCKET_NAME,
-                    doc.HasFileForUpload && uploadedFileNames.TryDequeue(out var fileName) ? fileName : null
+                    uploadedFileNames.TryDequeue(out var fileName) ? fileName : null
                 )).ToArray();
 
             var service = _personalDocumentApiServiceFactory.Create(PersonalDocuments.EmployeeId!);
@@ -1208,6 +1207,65 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync UpdatePersonalDocumentCommand { get; private set; }
         private async Task Execute_UpdatePersonalDocumentCommand()
         {
+            if (!PersonalDocuments.PendingFilePaths.Any())
+            {
+                MessageBox.Show("Выберите хотя бы один файл для добавления", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var fileBytes = new List<byte[]>();
+            var fileNames = new List<string>();
+
+            foreach (var path in PersonalDocuments.PendingFilePaths.Select(x => x.FilePath))
+            {
+                if (System.IO.File.Exists(path))
+                {
+                    fileBytes.Add(await System.IO.File.ReadAllBytesAsync(path));
+                    fileNames.Add(Path.GetFileName(path));
+                }
+            }
+
+            if (!fileBytes.Any())
+            {
+                MessageBox.Show("Не удалось прочитать выбранные файлы", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var pdfBytes = await _documentConversionService.ConvertImagesToPdfAsync
+                (
+                    PersonalDocuments.DocumentType.Name,
+                    PersonalDocuments.EmployeeId!,
+                    fileBytes,
+                    fileNames
+                );
+
+            var fileExtension = $".pdf";
+
+            var s3Result = await _fileStorageService.UploadFileAsync
+                (
+                    new UploadFileRequest
+                        (
+                            FileConst.BUCKET_NAME,
+                            PersonalDocuments.DocumentType.Name,
+                            FileConst.BuildEmployeeFolder
+                                (
+                                    PersonalDocuments.EmployeeId!,
+                                    EmployeeFolderType.PersonalDocument
+                                ),
+                            //FilePath: null,
+                            FileBytes: pdfBytes,
+                            FileName: fileExtension
+                        )
+                );
+
+            if (s3Result.IsFailure && s3Result.Value == null)
+            {
+                MessageBox.Show(s3Result.StringMessage);
+                return;
+            }
+
             var personalDocumentService = _personalDocumentApiServiceFactory.Create(PersonalDocuments!.EmployeeId!);
 
             var dbResult = await personalDocumentService.UpdatePersonalDocumentAsync
@@ -1217,7 +1275,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                         (
                             PersonalDocuments.DocumentType.Id,
                             PersonalDocuments.Number,
-                            PersonalDocuments.Series
+                            PersonalDocuments.Series,
+                            FileConst.BUCKET_NAME,
+                            s3Result.Value!.FileName
                         )
                 );
 
@@ -1227,10 +1287,19 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 return;
             }
 
+            var (bucketName, fileName) = S3UrlParser.Parse(PersonalDocuments.SelectedLocalPersonalDocument.FileKey!);
+            var deleteFileResult = await _fileStorageService.DeleteFileAsync(new DeleteFileRequest(bucketName!, fileName!));
+
+            if (deleteFileResult.IsFailure)
+            {
+                MessageBox.Show($"{deleteFileResult.Errors}");
+                return;
+            }
+
             PersonalDocuments.ClearProperty();
         }
-        private bool CanExecute_UpdatePersonalDocumentCommand()
-            => PersonalDocuments!.SelectedLocalPersonalDocument != null && PersonalDocuments!.DocumentType != null && !string.IsNullOrWhiteSpace(PersonalDocuments!.Number);
+        private bool CanExecute_UpdatePersonalDocumentCommand() => true;
+            //=> PersonalDocuments!.SelectedLocalPersonalDocument != null && PersonalDocuments!.DocumentType != null && !string.IsNullOrWhiteSpace(PersonalDocuments!.Number);
 
         // DELETE
         public RelayCommandAsync<PersonalDocumentDisplay> DeletePersonalDocumentCommand { get; private set; }

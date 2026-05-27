@@ -9,6 +9,8 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.PersonalDocum
             string EmployeeId, 
             string DocumentTypeId, 
             string DocumentNumber, 
-            string? DocumentSeries
+            string? DocumentSeries, 
+            string? BucketName, 
+            string? FileName
         ) : IRequest<Result>;
 }

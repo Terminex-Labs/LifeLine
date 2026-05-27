@@ -78,12 +78,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             }
         }
 
-        public string? FilePath
-        {
-            get => field;
-            set => SetProperty(ref field, value);
-        }
-
         private PersonalDocumentDisplay _selectedLocalPersonalDocument = null!;
         public PersonalDocumentDisplay SelectedLocalPersonalDocument
         {
@@ -92,14 +86,14 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             {
                 if (value != null)
                 {
-                    SetProp(value);
+                    SetProp(value).GetAwaiter().GetResult();
 
                     SetProperty(ref _selectedLocalPersonalDocument, value);
                 }
             }
         }
 
-        private void SetProp(PersonalDocumentDisplay value)
+        private async Task SetProp(PersonalDocumentDisplay value)
         {
             Number = value.DocumentNumber;
             Series = value.DocumentSeries;
@@ -136,11 +130,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         public RelayCommandAsync? AddPersonalDocumentCommand { get; private set; }
         private async Task Execute_AddPersonalDocumentCommand()
         {
-            var filesToProcess = PendingFilePaths.Any()
-                ? PendingFilePaths.Select(x => x.FilePath).ToArray()
-                : (FilePath != null ? [FilePath] : Array.Empty<string>());
-
-            if (!filesToProcess.Any())
+            if (!PendingFilePaths.Any())
             {
                 MessageBox.Show("Выберите хотя бы один файл для добавления", "Внимание",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -152,8 +142,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                 var fileBytes = new List<byte[]>();
                 var fileNames = new List<string>();
 
-                foreach (var path in filesToProcess)
+                foreach (var path in PendingFilePaths.Select(x => x.FilePath))
                 {
+                    MessageBox.Show(path);
                     if (System.IO.File.Exists(path))
                     {
                         fileBytes.Add(await System.IO.File.ReadAllBytesAsync(path));
@@ -187,10 +178,10 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                                         Guid.Empty,
                                         Guid.Parse(DocumentType.Id),
                                         Number,
-                                        Series
+                                        Series,
+                                        null
                                     ),
                                 _documentTypes,
-                                FilePath,
                                 SaveStatus.Local
                             )
                         {
@@ -216,7 +207,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             Number = string.Empty;
             Series = string.Empty;
             DocumentType = null!;
-            FilePath = string.Empty;
 
             PendingFilePaths.Clear();
         }
