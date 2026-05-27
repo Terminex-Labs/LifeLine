@@ -1322,6 +1322,12 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                     if (!result.IsSuccess)
                         errors.AddRange(result.Errors);
 
+                    var (bucketName, fileName) = S3UrlParser.Parse(PersonalDocuments.SelectedLocalPersonalDocument.FileKey!);
+                    var deleteFileResult = await _fileStorageService.DeleteFileAsync(new DeleteFileRequest(bucketName!, fileName!));
+
+                    if (deleteFileResult.IsFailure)
+                        errors.AddRange(deleteFileResult.Errors);
+
                     PersonalDocuments.LocalPersonalDocuments.Remove(display);
                     PersonalDocuments.PersonalDocumentsView.Refresh();
                     PersonalDocuments.ClearProperty();
