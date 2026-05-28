@@ -1,4 +1,6 @@
-﻿using LifeLine.HrPanel.Desktop.Models;
+﻿using LifeLine.File.Service.Client;
+using LifeLine.HrPanel.Desktop.Models;
+using Shared.Contracts.Request.Files;
 using Shared.Contracts.Response.EmployeeService;
 using Shared.WPF.Commands;
 using Shared.WPF.Constants;
@@ -17,6 +19,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
     internal sealed class PersonalDocumentsVM : BaseEmployeeViewModel
     {
         private readonly IFileDialogService _fileDialogService;
+        private readonly IFileStorageService _fileStorageService;
         private readonly IDocumentConversionService _documentConversionService;
 
         private readonly IReadOnlyCollection<DocumentTypeDisplay> _documentTypes;
@@ -25,12 +28,14 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         public PersonalDocumentsVM
             (
                 IFileDialogService fileDialogService,
+                IFileStorageService fileStorageService,
                 IDocumentConversionService documentConversionService, 
 
                 IReadOnlyCollection<DocumentTypeDisplay> documentTypes
             )
         {
             _fileDialogService = fileDialogService;
+            _fileStorageService = fileStorageService;
 
             _documentTypes = documentTypes;
 
@@ -86,18 +91,46 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             {
                 if (value != null)
                 {
-                    SetProp(value).GetAwaiter().GetResult();
+                    SetProp(value);
 
                     SetProperty(ref _selectedLocalPersonalDocument, value);
+
+                    _ = LoadDocumentToQueueAsync(value);
                 }
             }
         }
 
-        private async Task SetProp(PersonalDocumentDisplay value)
+        private void SetProp(PersonalDocumentDisplay value)
         {
             Number = value.DocumentNumber;
             Series = value.DocumentSeries;
             DocumentType = value.DocumentType;
+        }
+
+        private async Task LoadDocumentToQueueAsync(PersonalDocumentDisplay document)
+        {
+            PendingFilePaths.Clear();
+
+            if (document.SaveStatus != SaveStatus.DataBase)
+                return;
+
+            if (string.IsNullOrWhiteSpace(document.FileKey))
+                return;
+
+            var (bucketName, fileName) = S3UrlParser.Parse(document.FileKey);
+
+            var metadataResult = await _fileStorageService.GetFileMetadataAsync(new GetFileMetadataRequest(bucketName!, fileName!));
+
+            if (metadataResult.IsFailure || metadataResult.Value == null)
+            {
+                MessageBox.Show($"Не удалось получить метаданные: {metadataResult.StringMessage}");
+                return;
+            }
+
+            var pendingItem = PendingFileItem.FromMetadata(PendingFilePaths.Count + 1, metadataResult.Value);
+
+            PendingFilePaths.Add(pendingItem);
+            UpdateIndexes();
         }
 
         public ObservableCollection<PendingFileItem> PendingFilePaths { get; private set; } = [];
@@ -141,14 +174,19 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             {
                 var fileBytes = new List<byte[]>();
                 var fileNames = new List<string>();
+                var contentType = new List<string>();
 
-                foreach (var path in PendingFilePaths.Select(x => x.FilePath))
+                foreach (var pendingFile in PendingFilePaths)
                 {
-                    MessageBox.Show(path);
-                    if (System.IO.File.Exists(path))
+                    if (System.IO.File.Exists(pendingFile.FilePath))
                     {
-                        fileBytes.Add(await System.IO.File.ReadAllBytesAsync(path));
-                        fileNames.Add(Path.GetFileName(path));
+                        fileBytes.Add(await System.IO.File.ReadAllBytesAsync(pendingFile.FilePath));
+                        fileNames.Add(Path.GetFileName(pendingFile.FileName));
+                        contentType.Add(Path.GetExtension(pendingFile.ContentType));
+
+                        //MessageBox.Show($"Файл: {pendingFile.FileName}\n" +
+                        //                $"Размер: {pendingFile.FileSize} байт\n" +
+                        //                $"Тип: {pendingFile.ContentType}\n");
                     }
                 }
 
@@ -167,7 +205,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                         fileNames
                     );
 
-                var fileName = $".pdf";
+                var fileName = $"{Number}.pdf";
 
                 LocalPersonalDocuments.Add
                     (
@@ -187,7 +225,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                         {
                             FileBytes = pdfBytes,
                             FileName = fileName,
-                            ContentType = "application/pdf"
+                            ContentType = "application/pdf",
                         }
                     );
 

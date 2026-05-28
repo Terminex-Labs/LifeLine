@@ -121,7 +121,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             PersonalInfo = new();
             PersonalPhoto = new(_fileDialogService, _imageCompressionService);
             ContactInformation = new();
-            PersonalDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes);
+            PersonalDocuments = new(_fileDialogService, _fileStorageService, _documentConversionService, DocumentTypes);
             EducationDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes, EducationLevels);
             WorkPermits = new(_fileDialogService, _documentConversionService, PermitTypes, AdmissionStatuses);
             Specialties = new();

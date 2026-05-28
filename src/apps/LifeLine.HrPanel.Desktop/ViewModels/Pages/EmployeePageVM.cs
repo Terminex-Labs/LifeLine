@@ -134,7 +134,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             PersonalInfo = new();
             PersonalPhoto = new(_fileDialogService, _imageCompressionService);
             ContactInformation = new();
-            PersonalDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes);
+            PersonalDocuments = new(_fileDialogService, _fileStorageService, _documentConversionService, DocumentTypes);
             EducationDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes, EducationLevels);
             WorkPermits = new(_fileDialogService, _documentConversionService, PermitTypes, AdmissionStatuses);
             Specialties = new();
@@ -1241,7 +1241,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                     fileNames
                 );
 
-            var fileExtension = $".pdf";
+            var fileExtension = $"{PersonalDocuments.Number}.pdf"; ;
 
             var s3Result = await _fileStorageService.UploadFileAsync
                 (

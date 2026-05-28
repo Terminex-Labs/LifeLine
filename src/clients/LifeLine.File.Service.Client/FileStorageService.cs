@@ -31,6 +31,23 @@ namespace LifeLine.File.Service.Client
             }
         }
 
+        public async Task<Result<GetFileMetadataResponse?>> GetFileMetadataAsync(GetFileMetadataRequest request)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("files/meta-data", request, _jsonSerializerOptions);
+
+                if (!response.IsSuccessStatusCode)
+                    return Result<GetFileMetadataResponse?>.Failure(Error.New(ErrorCode.NotFound, await response.Content.ReadAsStringAsync()));
+
+                return Result<GetFileMetadataResponse?>.Success(await response.Content.ReadFromJsonAsync<GetFileMetadataResponse>());
+            }
+            catch (Exception ex)
+            {
+                return Result<GetFileMetadataResponse?>.Failure(Error.New(ErrorCode.NotFound, $"Ошибка получения: {ex.Message}"));
+            }
+        }
+
         public async Task<Result> DeleteFileAsync(DeleteFileRequest request)
         {
             try
