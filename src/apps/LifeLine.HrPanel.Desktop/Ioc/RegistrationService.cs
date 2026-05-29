@@ -17,6 +17,7 @@ using LifeLine.Employee.Service.Client.Services.Gender;
 using LifeLine.Employee.Service.Client.Services.Specialty;
 using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Services.GenerateImage;
+using LifeLine.HrPanel.Desktop.Services.GeneratePdf;
 using LifeLine.User.Service.Client.ApiClients;
 using LifeLine.User.Service.Client.Services;
 using Microsoft.Extensions.Configuration;
@@ -40,6 +41,7 @@ namespace LifeLine.HrPanel.Desktop.Ioc
 
             services.AddSingleton<IFileDialogService, FileDialogService>();
             services.AddSingleton<IGenerateImageService, GenerateImageService>();
+            services.AddSingleton<IGeneratePdfService, GeneratePdfService>();
 
             services.AddSingleton<IImageCompressionService, ImageCompressionService>();
             services.AddSingleton<IDocumentConversionService, DocumentConversionService>();

@@ -45,6 +45,43 @@ namespace Shared.WPF.Helpers
             }
         }
 
+        public static async Task<byte[]?> BytesFromUrlAsync(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                Debug.WriteLine("[ImageHelper] Url пуст");
+                return null;
+            }
+
+            try
+            {
+                return await _httpClient.GetByteArrayAsync(url);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ImageHelper] Ошибка загрузки '{url}': {ex.Message}");
+                return null;
+            }
+        }
+
+        public static async Task<string?> SaveToTempFileAsync(byte[]? imageBytes, string fileName)
+        {
+            if (imageBytes == null || imageBytes.Length == 0 || string.IsNullOrWhiteSpace(fileName))
+                return null;
+
+            try
+            {
+                var tempPath = Path.Combine(Path.GetTempPath(), fileName);
+                await File.WriteAllBytesAsync(tempPath, imageBytes);
+                return tempPath;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ImageHelper] Ошибка сохранения временного файла: {ex.Message}");
+                return null;
+            }
+        }
+
         public static ImageSource? ToImageFromFilePath(string filePath)
         {
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))

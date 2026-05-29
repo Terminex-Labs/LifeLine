@@ -18,6 +18,7 @@ using LifeLine.Employee.Service.Client.Services.Specialty;
 using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Enums;
 using LifeLine.HrPanel.Desktop.Models;
+using LifeLine.HrPanel.Desktop.Services.GeneratePdf;
 using LifeLine.HrPanel.Desktop.ViewModels.Features;
 using Shared.Contracts.Request.EmployeeService.Assignment;
 using Shared.Contracts.Request.EmployeeService.ContactInformation;
@@ -36,6 +37,7 @@ using Shared.WPF.Services.Conversion;
 using Shared.WPF.Services.FileDialog;
 using Shared.WPF.ViewModels.Abstract;
 using System.Collections.ObjectModel;
+using System.Net.Http;
 using System.Windows;
 using Terminex.Common.Results;
 
@@ -43,9 +45,12 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 {
     internal sealed class EmployeeCreatePageVM : BasePageViewModel, IAsyncInitializable
     {
+        private readonly HttpClient _httpClient;
+
         private readonly IEmployeeService _employeeService;
         private readonly IFileDialogService _fileDialogService;
         private readonly IFileStorageService _fileStorageService;
+        private readonly IGeneratePdfService _generatePdfService;
         private readonly IGenderReadOnlyService _genderReadOnlyService;
         private readonly IStatusReadOnlyService _statusReadOnlyService;
         private readonly ISpecialtyReadOnlyService _specialtyReadOnlyService;
@@ -69,9 +74,11 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         public EmployeeCreatePageVM
             (
+
                 IEmployeeService employeeService,
                 IFileDialogService fileDialogService,
                 IFileStorageService fileStorageService,
+                IGeneratePdfService generatePdfService,
                 IGenderReadOnlyService genderReadOnlyService,
                 IStatusReadOnlyService statusReadOnlyService,
                 ISpecialtyReadOnlyService specialtyReadOnlyService,
@@ -94,9 +101,11 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 IImageCompressionService imageCompressionService
             )
         {
+
             _employeeService = employeeService;
             _fileDialogService = fileDialogService;
             _fileStorageService = fileStorageService;
+            _generatePdfService = generatePdfService;
             _genderReadOnlyService = genderReadOnlyService;
             _statusReadOnlyService = statusReadOnlyService;
             _specialtyReadOnlyService = specialtyReadOnlyService;
@@ -121,7 +130,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             PersonalInfo = new();
             PersonalPhoto = new(_fileDialogService, _imageCompressionService);
             ContactInformation = new();
-            PersonalDocuments = new(_fileDialogService, _fileStorageService, _documentConversionService, DocumentTypes);
+            PersonalDocuments = new(_generatePdfService, _fileDialogService, _fileStorageService, _documentConversionService, DocumentTypes);
             EducationDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes, EducationLevels);
             WorkPermits = new(_fileDialogService, _documentConversionService, PermitTypes, AdmissionStatuses);
             Specialties = new();

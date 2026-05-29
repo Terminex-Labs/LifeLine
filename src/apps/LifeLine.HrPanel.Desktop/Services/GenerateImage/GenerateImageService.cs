@@ -27,5 +27,20 @@ namespace LifeLine.HrPanel.Desktop.Services.GenerateImage
 
             return image;
         }
+
+        public async Task<byte[]?> GenerateBytesAsync(string? personalPhoto)
+        {
+            if (string.IsNullOrWhiteSpace(personalPhoto))
+                return null;
+
+            var (bucketName, fileName) = S3UrlParser.Parse(personalPhoto);
+            var s3Result = await _fileStorageService.GetPresignedUrlAsync(
+                new PresignedUrlRequest(bucketName!, fileName!));
+
+            if (s3Result.IsFailure || string.IsNullOrWhiteSpace(s3Result.Value?.PresignedUrl))
+                return null;
+
+            return await ImageHelper.BytesFromUrlAsync(s3Result.Value.PresignedUrl);
+        }
     }
 }

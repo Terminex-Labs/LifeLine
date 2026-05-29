@@ -1,23 +1,29 @@
 ﻿using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Models;
+using LifeLine.HrPanel.Desktop.Services.GeneratePdf;
 using Shared.Contracts.Request.Files;
 using Shared.Contracts.Response.EmployeeService;
 using Shared.WPF.Commands;
 using Shared.WPF.Constants;
 using Shared.WPF.Enums;
+using Shared.WPF.Extensions;
 using Shared.WPF.Helpers;
 using Shared.WPF.Services.Conversion;
 using Shared.WPF.Services.FileDialog;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Data;
+using Terminex.Common.Results;
 
 namespace LifeLine.HrPanel.Desktop.ViewModels.Features
 {
     internal sealed class PersonalDocumentsVM : BaseEmployeeViewModel
     {
+        private readonly IGeneratePdfService _generatePdfService;
+
         private readonly IFileDialogService _fileDialogService;
         private readonly IFileStorageService _fileStorageService;
         private readonly IDocumentConversionService _documentConversionService;
@@ -27,6 +33,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
 
         public PersonalDocumentsVM
             (
+                IGeneratePdfService generatePdfService,
+
                 IFileDialogService fileDialogService,
                 IFileStorageService fileStorageService,
                 IDocumentConversionService documentConversionService, 
@@ -34,6 +42,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                 IReadOnlyCollection<DocumentTypeDisplay> documentTypes
             )
         {
+            _generatePdfService = generatePdfService;
+
             _fileDialogService = fileDialogService;
             _fileStorageService = fileStorageService;
 
@@ -46,6 +56,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             PersonalDocumentsView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(PersonalDocumentDisplay.SaveStatus)));
 
             SelectMultipleCommand = new RelayCommand(Execute_SelectMultipleCommand);
+            PreviewCommand = new RelayCommandAsync<PendingFileItem>(Execute_PreviewCommand);
             RemovePendingFileCommand = new RelayCommand<PendingFileItem>(Execute_RemovePendingFileCommand);
             AddPersonalDocumentCommand = new RelayCommandAsync(Execute_AddPersonalDocumentCommand, CanExecute_AddPersonalDocumentCommand);
         }
@@ -148,6 +159,52 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
 
                 UpdateIndexes();
             }
+        }
+
+        public RelayCommandAsync<PendingFileItem>? PreviewCommand { get; private set; }
+        private async Task Execute_PreviewCommand(PendingFileItem item)
+        {
+            List<Error> errors = [];
+
+            byte[]? fileBytes = null;
+            var pathForCheck = item.IsRemoteFile ? item.FileName : item.FilePath;
+
+            Func<Task> func = SelectedLocalPersonalDocument.SaveStatus switch
+            {
+                SaveStatus.Local => async () =>
+                {
+                    Debug.WriteLine("Пока не реализовано!");
+                },
+                SaveStatus.DataBase => async () =>
+                {
+                    fileBytes = await _generatePdfService.GenerateAsync(SelectedLocalPersonalDocument.FileKey);
+
+                    if (fileBytes == null || fileBytes.Length == 0)
+                    {
+                        MessageBox.Show("Не удалось загрузить файл для просмотра", "Ошибка",
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    await OpenPdfExternally(fileBytes, pathForCheck);
+                },
+                _ => async () => Result.Success()
+            };
+
+            await func();
+
+            errors.ShowError();
+        }
+
+        private async Task OpenPdfExternally(byte[] pdfBytes, string fileName)
+        {
+            var tempPath = await PdfHelper.SaveToTempFile(pdfBytes, fileName);
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = tempPath,
+                UseShellExecute = true 
+            });
         }
 
         public RelayCommand<PendingFileItem>? RemovePendingFileCommand { get; private set; }

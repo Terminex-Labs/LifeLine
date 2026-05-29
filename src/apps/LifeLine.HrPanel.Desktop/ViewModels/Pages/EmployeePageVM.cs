@@ -19,8 +19,8 @@ using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Enums;
 using LifeLine.HrPanel.Desktop.Models;
 using LifeLine.HrPanel.Desktop.Services.GenerateImage;
+using LifeLine.HrPanel.Desktop.Services.GeneratePdf;
 using LifeLine.HrPanel.Desktop.ViewModels.Features;
-using LifeLine.HrPanel.Desktop.Views.UserControls;
 using Shared.Contracts.Request.EmployeeService.Assignment;
 using Shared.Contracts.Request.EmployeeService.ContactInformation;
 using Shared.Contracts.Request.EmployeeService.EducationDocument;
@@ -41,19 +41,20 @@ using Shared.WPF.Services.NavigationService.Pages;
 using Shared.WPF.ViewModels.Abstract;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Net.Http;
 using System.Windows;
-using System.Windows.Controls;
-using System.Xml.Linq;
 using Terminex.Common.Results;
 
 namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 {
     internal sealed class EmployeePageVM : BasePageViewModel, IUpdatable, IAsyncInitializable
     {
+
         private readonly INavigationPage _navigationPage;
 
         private readonly IFileDialogService _fileDialogService;
         private readonly IFileStorageService _fileStorageService;
+        private readonly IGeneratePdfService _generatePdfService;
         private readonly IGenerateImageService _generateImageService;
         private readonly IImageCompressionService _imageCompressionService;
         private readonly IDocumentConversionService _documentConversionService;
@@ -78,10 +79,13 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         public EmployeePageVM
             (
+                HttpClient httpClient,
+
                 INavigationPage navigationPage,
 
                 IFileDialogService fileDialogService,
                 IFileStorageService fileStorageService,
+                IGeneratePdfService generatePdfService,
                 IGenerateImageService generateImageService,
                 IImageCompressionService imageCompressionService,
                 IDocumentConversionService documentConversionService,
@@ -109,6 +113,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             _fileDialogService = fileDialogService;
             _fileStorageService = fileStorageService;
+            _generatePdfService = generatePdfService;
             _generateImageService = generateImageService;
             _imageCompressionService = imageCompressionService;
             _documentConversionService = documentConversionService;
@@ -134,7 +139,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             PersonalInfo = new();
             PersonalPhoto = new(_fileDialogService, _imageCompressionService);
             ContactInformation = new();
-            PersonalDocuments = new(_fileDialogService, _fileStorageService, _documentConversionService, DocumentTypes);
+            PersonalDocuments = new(_generatePdfService, _fileDialogService, _fileStorageService, _documentConversionService, DocumentTypes);
             EducationDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes, EducationLevels);
             WorkPermits = new(_fileDialogService, _documentConversionService, PermitTypes, AdmissionStatuses);
             Specialties = new();
