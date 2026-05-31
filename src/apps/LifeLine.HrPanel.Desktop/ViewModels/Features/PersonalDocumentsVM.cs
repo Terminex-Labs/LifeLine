@@ -1,12 +1,11 @@
 ﻿using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Models;
-using LifeLine.HrPanel.Desktop.Services.GeneratePdf;
+using LifeLine.HrPanel.Desktop.Services.FilePreview;
 using Shared.Contracts.Request.Files;
 using Shared.Contracts.Response.EmployeeService;
 using Shared.WPF.Commands;
 using Shared.WPF.Constants;
 using Shared.WPF.Enums;
-using Shared.WPF.Extensions;
 using Shared.WPF.Helpers;
 using Shared.WPF.Services.Conversion;
 using Shared.WPF.Services.FileDialog;
@@ -16,16 +15,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Data;
-using Terminex.Common.Results;
 
 namespace LifeLine.HrPanel.Desktop.ViewModels.Features
 {
     internal sealed class PersonalDocumentsVM : BaseEmployeeViewModel
     {
-        private readonly IGeneratePdfService _generatePdfService;
-
         private readonly IFileDialogService _fileDialogService;
         private readonly IFileStorageService _fileStorageService;
+        private readonly IFilePreviewService _filePreviewService;
         private readonly IDocumentConversionService _documentConversionService;
 
         private readonly IReadOnlyCollection<DocumentTypeDisplay> _documentTypes;
@@ -33,19 +30,17 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
 
         public PersonalDocumentsVM
             (
-                IGeneratePdfService generatePdfService,
-
                 IFileDialogService fileDialogService,
                 IFileStorageService fileStorageService,
+                IFilePreviewService filePreviewService,
                 IDocumentConversionService documentConversionService, 
 
                 IReadOnlyCollection<DocumentTypeDisplay> documentTypes
             )
         {
-            _generatePdfService = generatePdfService;
-
             _fileDialogService = fileDialogService;
             _fileStorageService = fileStorageService;
+            _filePreviewService = filePreviewService;
 
             _documentTypes = documentTypes;
 
@@ -94,8 +89,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             }
         }
 
-        private PersonalDocumentDisplay _selectedLocalPersonalDocument = null!;
-        public PersonalDocumentDisplay SelectedLocalPersonalDocument
+        private PersonalDocumentDisplay? _selectedLocalPersonalDocument = null!;
+        public PersonalDocumentDisplay? SelectedLocalPersonalDocument
         {
             get => _selectedLocalPersonalDocument;
             set
@@ -138,7 +133,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                 return;
             }
 
-            var pendingItem = PendingFileItem.FromMetadata(PendingFilePaths.Count + 1, metadataResult.Value);
+            var pendingItem = PendingFileItem.FromMetadata(PendingFilePaths.Count + 1, metadataResult.Value, document.FileKey);
 
             PendingFilePaths.Add(pendingItem);
             UpdateIndexes();
@@ -164,47 +159,36 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         public RelayCommandAsync<PendingFileItem>? PreviewCommand { get; private set; }
         private async Task Execute_PreviewCommand(PendingFileItem item)
         {
-            List<Error> errors = [];
-
-            byte[]? fileBytes = null;
-            var pathForCheck = item.IsRemoteFile ? item.FileName : item.FilePath;
-
-            Func<Task> func = SelectedLocalPersonalDocument.SaveStatus switch
+            if (item == null)
             {
-                SaveStatus.Local => async () =>
-                {
-                    Debug.WriteLine("Пока не реализовано!");
-                },
-                SaveStatus.DataBase => async () =>
-                {
-                    fileBytes = await _generatePdfService.GenerateAsync(SelectedLocalPersonalDocument.FileKey);
+                Debug.WriteLine($"[PersonalDocumentsVM] [Execute_PreviewCommand] item пуст!");
+                return;
+            }
 
-                    if (fileBytes == null || fileBytes.Length == 0)
-                    {
-                        MessageBox.Show("Не удалось загрузить файл для просмотра", "Ошибка",
-                            MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    await OpenPdfExternally(fileBytes, pathForCheck);
-                },
-                _ => async () => Result.Success()
-            };
-
-            await func();
-
-            errors.ShowError();
-        }
-
-        private async Task OpenPdfExternally(byte[] pdfBytes, string fileName)
-        {
-            var tempPath = await PdfHelper.SaveToTempFile(pdfBytes, fileName);
-
-            Process.Start(new ProcessStartInfo
+            try
             {
-                FileName = tempPath,
-                UseShellExecute = true 
-            });
+                string? tempPath = null;
+
+                if (item.IsRemoteFile && !string.IsNullOrWhiteSpace(item.S3Url))
+                    tempPath = await _filePreviewService.DownloadRemoteFileToTempAsync(item.S3Url, item.FileName);
+                else if (!string.IsNullOrWhiteSpace(item.FilePath) && System.IO.File.Exists(item.FilePath))
+                    tempPath = _filePreviewService.CopyLocalFileToTempAsync(item.FilePath, item.FileName);
+
+                if (string.IsNullOrWhiteSpace(tempPath))
+                {
+                    MessageBox.Show("Не удалось подготовить файл для просмотра", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                _filePreviewService.OpenInDefaultApplication(tempPath);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PreviewCommand] Ошибка: {ex.Message}");
+                MessageBox.Show($"Ошибка при открытии файла: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         public RelayCommand<PendingFileItem>? RemovePendingFileCommand { get; private set; }
@@ -304,6 +288,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             DocumentType = null!;
 
             PendingFilePaths.Clear();
+            SelectedLocalPersonalDocument = null;
         }
 
         private void UpdateIndexes()
