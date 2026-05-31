@@ -1,5 +1,6 @@
 ﻿using Shared.Contracts.Response.Files;
 using Shared.WPF.ViewModels.Abstract;
+using System.Diagnostics;
 using System.IO;
 using System.Windows.Media.Imaging;
 
@@ -10,20 +11,20 @@ namespace LifeLine.HrPanel.Desktop.Models
         private int _index;
         private string _fileName = null!;
         private string? _filePath;
-        //private string? _s3Url;
+        private string? _s3Url;
         private BitmapImage? _thumbnail;
         private bool _isSelected;
         private long _fileSize;
         private string _contentType = null!;
         private bool _isRemoteFile;
 
-        public static PendingFileItem FromMetadata(int index, GetFileMetadataResponse metadata)
+        public static PendingFileItem FromMetadata(int index, GetFileMetadataResponse metadata, string s3Url)
         {
             return new PendingFileItem
                 (
                     index: index,
                     fileName: metadata.FileName,
-                    filePath: metadata.FileName,
+                    s3Url: s3Url,
                     fileSize: metadata.Size,
                     contentType: metadata.ContentType
                 );
@@ -34,17 +35,19 @@ namespace LifeLine.HrPanel.Desktop.Models
             Index = index;
             FilePath = filePath;
             FileName = Path.GetFileName(filePath);
+            IsRemoteFile = false;
 
             LoadMetadata();
 
             _ = GenerateThumbnailAsync();
         }
 
-        private PendingFileItem(int index, string fileName, string filePath, long fileSize, string contentType)
+        private PendingFileItem(int index, string fileName, string s3Url, long fileSize, string contentType)
         {
             Index = index;
             FileName = fileName;
-            FilePath = filePath;
+            S3Url = s3Url;
+            FilePath = null;
             FileSize = fileSize;
             ContentType = contentType;
             IsRemoteFile = true;
@@ -73,7 +76,7 @@ namespace LifeLine.HrPanel.Desktop.Models
         /// <summary>
         /// Полный путь к файлу на диске
         /// </summary>
-        public string FilePath
+        public string? FilePath
         {
             get => _filePath;
             set => SetProperty(ref _filePath, value);
@@ -82,11 +85,11 @@ namespace LifeLine.HrPanel.Desktop.Models
         /// <summary>
         /// URL файла в s3
         /// </summary>
-        //public string? S3Url
-        //{
-        //    get => _s3Url;
-        //    set => SetProperty(ref _s3Url, value);
-        //}
+        public string? S3Url
+        {
+            get => _s3Url;
+            set => SetProperty(ref _s3Url, value);
+        }
 
         /// <summary>
         /// Превью изображения (для отображения в UI)
@@ -156,12 +159,15 @@ namespace LifeLine.HrPanel.Desktop.Models
 
         private void LoadMetadata()
         {
+            if (IsRemoteFile && string.IsNullOrWhiteSpace(FilePath))
+                return;
+
             try
             {
-                var fileInfo = new FileInfo(FilePath);
+                var fileInfo = new FileInfo(FilePath!);
 
                 FileSize = fileInfo.Length;
-                ContentType = GetContentType(FilePath);
+                ContentType = GetContentType(FilePath!);
             }
             catch
             {
@@ -195,12 +201,18 @@ namespace LifeLine.HrPanel.Desktop.Models
         {
             try
             {
-                var pathForCheck = IsRemoteFile ? FileName : FilePath;
-
-                if (string.IsNullOrEmpty(pathForCheck))
+                if (IsRemoteFile)
+                {
+                    if (IsPdfFile(FileName))
+                        Thumbnail = CreatePdfPlaceholder();
+                    else if (IsImageFile(FileName))
+                        Thumbnail = CreateImagePlaceholder();
                     return;
+                }
 
-                if (IsImageFile(pathForCheck))
+                if (string.IsNullOrEmpty(FilePath)) return;
+
+                if (IsImageFile(FilePath))
                 {
                     var bitmap = new BitmapImage();
                     bitmap.BeginInit();
@@ -210,18 +222,30 @@ namespace LifeLine.HrPanel.Desktop.Models
                     bitmap.CacheOption = BitmapCacheOption.OnLoad;
                     bitmap.EndInit();
                     bitmap.Freeze();
-
                     Thumbnail = bitmap;
                 }
-                else if (IsPdfFile(pathForCheck))
+                else if (IsPdfFile(FilePath))
                 {
                     Thumbnail = CreatePdfPlaceholder();
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"[GenerateThumbnailAsync] Ошибка: {ex.Message}");
                 Thumbnail = null;
             }
+        }
+
+        private static BitmapImage CreateImagePlaceholder()
+        {
+            var bitmap = new BitmapImage();
+
+            bitmap.BeginInit();
+            bitmap.DecodePixelWidth = 150;
+            bitmap.DecodePixelHeight = 150;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
         }
 
         private static bool IsImageFile(string? path)
