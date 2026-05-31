@@ -18,6 +18,7 @@ using LifeLine.Employee.Service.Client.Services.Specialty;
 using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Enums;
 using LifeLine.HrPanel.Desktop.Models;
+using LifeLine.HrPanel.Desktop.Services.FilePreview;
 using LifeLine.HrPanel.Desktop.Services.GenerateImage;
 using LifeLine.HrPanel.Desktop.Services.GeneratePdf;
 using LifeLine.HrPanel.Desktop.ViewModels.Features;
@@ -54,6 +55,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         private readonly IFileDialogService _fileDialogService;
         private readonly IFileStorageService _fileStorageService;
+        private readonly IFilePreviewService _filePreviewService;
         private readonly IGeneratePdfService _generatePdfService;
         private readonly IGenerateImageService _generateImageService;
         private readonly IImageCompressionService _imageCompressionService;
@@ -85,6 +87,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
                 IFileDialogService fileDialogService,
                 IFileStorageService fileStorageService,
+                IFilePreviewService filePreviewService,
                 IGeneratePdfService generatePdfService,
                 IGenerateImageService generateImageService,
                 IImageCompressionService imageCompressionService,
@@ -113,6 +116,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             _fileDialogService = fileDialogService;
             _fileStorageService = fileStorageService;
+            _filePreviewService = filePreviewService;
             _generatePdfService = generatePdfService;
             _generateImageService = generateImageService;
             _imageCompressionService = imageCompressionService;
@@ -139,7 +143,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             PersonalInfo = new();
             PersonalPhoto = new(_fileDialogService, _imageCompressionService);
             ContactInformation = new();
-            PersonalDocuments = new(_generatePdfService, _fileDialogService, _fileStorageService, _documentConversionService, DocumentTypes);
+            PersonalDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentConversionService, DocumentTypes);
             EducationDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes, EducationLevels);
             WorkPermits = new(_fileDialogService, _documentConversionService, PermitTypes, AdmissionStatuses);
             Specialties = new();
