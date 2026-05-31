@@ -30,6 +30,7 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.PersonalDocum
                 employee.UpdateDocumentTypePD(Guid.Parse(request.Id), Guid.Parse(request.DocumentTypeId));
                 employee.UpdateDocumentNumberPD(Guid.Parse(request.Id), request.DocumentNumber);
                 employee.UpdateDocumentSeries(Guid.Parse(request.Id), request.DocumentSeries);
+                employee.UpdateFileKeyPersonalDocument(Guid.Parse(request.Id), request.BucketName, request.FileName);
 
                 await _writeContext.SaveChangesAsync(cancellationToken);
 

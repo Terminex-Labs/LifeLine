@@ -58,7 +58,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                     );
 
                 _fileName = Path.GetFileName(path);
-                Photo = ImageHelper.ToImageFromFilePath(path);
+                Photo = FileHelper.ImageFromFilePath(path);
             }
             catch (Exception ex)
             {

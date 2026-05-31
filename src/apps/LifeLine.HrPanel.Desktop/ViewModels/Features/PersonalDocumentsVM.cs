@@ -1,4 +1,7 @@
-﻿using LifeLine.HrPanel.Desktop.Models;
+﻿using LifeLine.File.Service.Client;
+using LifeLine.HrPanel.Desktop.Models;
+using LifeLine.HrPanel.Desktop.Services.FilePreview;
+using Shared.Contracts.Request.Files;
 using Shared.Contracts.Response.EmployeeService;
 using Shared.WPF.Commands;
 using Shared.WPF.Constants;
@@ -8,6 +11,7 @@ using Shared.WPF.Services.Conversion;
 using Shared.WPF.Services.FileDialog;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Data;
@@ -17,6 +21,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
     internal sealed class PersonalDocumentsVM : BaseEmployeeViewModel
     {
         private readonly IFileDialogService _fileDialogService;
+        private readonly IFileStorageService _fileStorageService;
+        private readonly IFilePreviewService _filePreviewService;
         private readonly IDocumentConversionService _documentConversionService;
 
         private readonly IReadOnlyCollection<DocumentTypeDisplay> _documentTypes;
@@ -25,12 +31,16 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         public PersonalDocumentsVM
             (
                 IFileDialogService fileDialogService,
+                IFileStorageService fileStorageService,
+                IFilePreviewService filePreviewService,
                 IDocumentConversionService documentConversionService, 
 
                 IReadOnlyCollection<DocumentTypeDisplay> documentTypes
             )
         {
             _fileDialogService = fileDialogService;
+            _fileStorageService = fileStorageService;
+            _filePreviewService = filePreviewService;
 
             _documentTypes = documentTypes;
 
@@ -41,6 +51,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             PersonalDocumentsView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(PersonalDocumentDisplay.SaveStatus)));
 
             SelectMultipleCommand = new RelayCommand(Execute_SelectMultipleCommand);
+            PreviewCommand = new RelayCommandAsync<PendingFileItem>(Execute_PreviewCommand);
             RemovePendingFileCommand = new RelayCommand<PendingFileItem>(Execute_RemovePendingFileCommand);
             AddPersonalDocumentCommand = new RelayCommandAsync(Execute_AddPersonalDocumentCommand, CanExecute_AddPersonalDocumentCommand);
         }
@@ -78,14 +89,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             }
         }
 
-        public string? FilePath
-        {
-            get => field;
-            set => SetProperty(ref field, value);
-        }
-
-        private PersonalDocumentDisplay _selectedLocalPersonalDocument = null!;
-        public PersonalDocumentDisplay SelectedLocalPersonalDocument
+        private PersonalDocumentDisplay? _selectedLocalPersonalDocument = null!;
+        public PersonalDocumentDisplay? SelectedLocalPersonalDocument
         {
             get => _selectedLocalPersonalDocument;
             set
@@ -95,6 +100,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                     SetProp(value);
 
                     SetProperty(ref _selectedLocalPersonalDocument, value);
+
+                    _ = LoadDocumentToQueueAsync(value);
                 }
             }
         }
@@ -104,6 +111,32 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             Number = value.DocumentNumber;
             Series = value.DocumentSeries;
             DocumentType = value.DocumentType;
+        }
+
+        private async Task LoadDocumentToQueueAsync(PersonalDocumentDisplay document)
+        {
+            PendingFilePaths.Clear();
+
+            if (document.SaveStatus != SaveStatus.DataBase)
+                return;
+
+            if (string.IsNullOrWhiteSpace(document.FileKey))
+                return;
+
+            var (bucketName, fileName) = S3UrlParser.Parse(document.FileKey);
+
+            var metadataResult = await _fileStorageService.GetFileMetadataAsync(new GetFileMetadataRequest(bucketName!, fileName!));
+
+            if (metadataResult.IsFailure || metadataResult.Value == null)
+            {
+                MessageBox.Show($"Не удалось получить метаданные: {metadataResult.StringMessage}");
+                return;
+            }
+
+            var pendingItem = PendingFileItem.FromMetadata(PendingFilePaths.Count + 1, metadataResult.Value, document.FileKey);
+
+            PendingFilePaths.Add(pendingItem);
+            UpdateIndexes();
         }
 
         public ObservableCollection<PendingFileItem> PendingFilePaths { get; private set; } = [];
@@ -123,6 +156,41 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             }
         }
 
+        public RelayCommandAsync<PendingFileItem>? PreviewCommand { get; private set; }
+        private async Task Execute_PreviewCommand(PendingFileItem item)
+        {
+            if (item == null)
+            {
+                Debug.WriteLine($"[PersonalDocumentsVM] [Execute_PreviewCommand] item пуст!");
+                return;
+            }
+
+            try
+            {
+                string? tempPath = null;
+
+                if (item.IsRemoteFile && !string.IsNullOrWhiteSpace(item.S3Url))
+                    tempPath = await _filePreviewService.DownloadRemoteFileToTempAsync(item.S3Url, item.FileName);
+                else if (!string.IsNullOrWhiteSpace(item.FilePath) && System.IO.File.Exists(item.FilePath))
+                    tempPath = _filePreviewService.CopyLocalFileToTempAsync(item.FilePath, item.FileName);
+
+                if (string.IsNullOrWhiteSpace(tempPath))
+                {
+                    MessageBox.Show("Не удалось подготовить файл для просмотра", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                _filePreviewService.OpenInDefaultApplication(tempPath);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PreviewCommand] Ошибка: {ex.Message}");
+                MessageBox.Show($"Ошибка при открытии файла: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         public RelayCommand<PendingFileItem>? RemovePendingFileCommand { get; private set; }
         private void Execute_RemovePendingFileCommand(PendingFileItem item)
         {
@@ -136,11 +204,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         public RelayCommandAsync? AddPersonalDocumentCommand { get; private set; }
         private async Task Execute_AddPersonalDocumentCommand()
         {
-            var filesToProcess = PendingFilePaths.Any()
-                ? PendingFilePaths.Select(x => x.FilePath).ToArray()
-                : (FilePath != null ? [FilePath] : Array.Empty<string>());
-
-            if (!filesToProcess.Any())
+            if (!PendingFilePaths.Any())
             {
                 MessageBox.Show("Выберите хотя бы один файл для добавления", "Внимание",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -151,13 +215,19 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             {
                 var fileBytes = new List<byte[]>();
                 var fileNames = new List<string>();
+                var contentType = new List<string>();
 
-                foreach (var path in filesToProcess)
+                foreach (var pendingFile in PendingFilePaths)
                 {
-                    if (System.IO.File.Exists(path))
+                    if (System.IO.File.Exists(pendingFile.FilePath))
                     {
-                        fileBytes.Add(await System.IO.File.ReadAllBytesAsync(path));
-                        fileNames.Add(Path.GetFileName(path));
+                        fileBytes.Add(await System.IO.File.ReadAllBytesAsync(pendingFile.FilePath));
+                        fileNames.Add(Path.GetFileName(pendingFile.FileName));
+                        contentType.Add(Path.GetExtension(pendingFile.ContentType));
+
+                        //MessageBox.Show($"Файл: {pendingFile.FileName}\n" +
+                        //                $"Размер: {pendingFile.FileSize} байт\n" +
+                        //                $"Тип: {pendingFile.ContentType}\n");
                     }
                 }
 
@@ -176,7 +246,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                         fileNames
                     );
 
-                var fileName = $".pdf";
+                var fileName = $"{Number}.pdf";
 
                 LocalPersonalDocuments.Add
                     (
@@ -187,16 +257,16 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                                         Guid.Empty,
                                         Guid.Parse(DocumentType.Id),
                                         Number,
-                                        Series
+                                        Series,
+                                        null
                                     ),
                                 _documentTypes,
-                                FilePath,
                                 SaveStatus.Local
                             )
                         {
                             FileBytes = pdfBytes,
                             FileName = fileName,
-                            ContentType = "application/pdf"
+                            ContentType = "application/pdf",
                         }
                     );
 
@@ -216,9 +286,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             Number = string.Empty;
             Series = string.Empty;
             DocumentType = null!;
-            FilePath = string.Empty;
 
             PendingFilePaths.Clear();
+            SelectedLocalPersonalDocument = null;
         }
 
         private void UpdateIndexes()

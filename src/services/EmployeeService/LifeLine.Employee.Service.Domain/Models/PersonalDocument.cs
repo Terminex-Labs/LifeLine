@@ -12,7 +12,7 @@ namespace LifeLine.Employee.Service.Domain.Models
         public DocumentTypeId DocumentTypeId { get; private set; }
         public DocumentNumber DocumentNumber { get; private set; } = null!;
         public DocumentSeries? DocumentSeries { get; private set; }
-        public ImageKey? ImageKey { get; private set; }
+        public FileUrl? ImageKey { get; private set; }
 
         public Employee Employee { get; private set; } = null!;
 
@@ -23,8 +23,8 @@ namespace LifeLine.Employee.Service.Domain.Models
                 EmployeeId employeeId,
                 DocumentTypeId documentTypeId, 
                 DocumentNumber documentNumber, 
-                DocumentSeries? documentSeries, 
-                ImageKey? imageKey
+                DocumentSeries? documentSeries,
+                FileUrl? imageKey
             ) : base(id)
         {
             EmployeeId = employeeId;
@@ -34,7 +34,7 @@ namespace LifeLine.Employee.Service.Domain.Models
             ImageKey = imageKey;
         }
 
-        internal static PersonalDocument Create(Guid employeeId, Guid documentTypeId, string documentNumber, string? documentSeries, ImageKey? imageKey)
+        internal static PersonalDocument Create(Guid employeeId, Guid documentTypeId, string documentNumber, string? documentSeries, string? bucketName, string? fileName)
             => new PersonalDocument
                 (
                     PersonalDocumentId.New(), 
@@ -42,7 +42,7 @@ namespace LifeLine.Employee.Service.Domain.Models
                     DocumentTypeId.Create(documentTypeId), 
                     DocumentNumber.Create(documentNumber), 
                     documentSeries != null ? DocumentSeries.Create(documentSeries) : null,
-                    imageKey ?? null
+                    bucketName != null && fileName != null ? FileUrl.Create(bucketName, fileName).Value : null
                 );
 
         internal void UpdateDocumentType(DocumentTypeId documentTypeId)
@@ -61,6 +61,12 @@ namespace LifeLine.Employee.Service.Domain.Models
         {
             if (documentSeries != DocumentSeries)
                 DocumentSeries = documentSeries;
+        }
+
+        internal void UpdateFileKey(FileUrl? fileUrl)
+        {
+            if (fileUrl != ImageKey)
+                ImageKey = fileUrl;
         }
     }
 }

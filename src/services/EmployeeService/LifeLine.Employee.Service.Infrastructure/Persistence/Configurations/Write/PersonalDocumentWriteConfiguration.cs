@@ -41,7 +41,7 @@ namespace LifeLine.Employee.Service.Infrastructure.Persistence.Configurations.Wr
 
             builder.Property(x => x.ImageKey)
                    .HasColumnName("FileKey")
-                   .HasConversion(inDB => inDB != null ? inDB.Value : null, outDB => outDB != null ? ImageKey.Create(outDB) : null);
+                   .HasConversion(outDB => outDB.HasValue ? outDB.Value.Value : null, inDB => string.IsNullOrWhiteSpace(inDB) ? null : new FileUrl(inDB));
         }
     }
 }

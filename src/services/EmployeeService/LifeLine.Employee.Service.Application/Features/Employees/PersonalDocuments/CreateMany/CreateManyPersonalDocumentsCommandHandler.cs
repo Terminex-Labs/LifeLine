@@ -32,7 +32,7 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.PersonalDocum
                     return Result.Failure(Error.NotFound("Пользователь не найден!"));
 
                 foreach (var item in request.PersonalDocuments)
-                    employee.AddPersonalDocument(item.DocumentTypeId, item.DocumentNumber, item.DocumentSeries, null);
+                    employee.AddPersonalDocument(item.DocumentTypeId, item.DocumentNumber, item.DocumentSeries, item.BucketName, item.FileName);
 
                 await _writeContext.SaveChangesAsync(cancellationToken);
 

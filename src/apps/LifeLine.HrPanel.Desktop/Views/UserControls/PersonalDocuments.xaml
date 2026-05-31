@@ -342,7 +342,8 @@
                                                                 Background="Transparent" 
                                                                 BorderThickness="0"
                                                                 Margin="15 0 15 0"
-                                                                Command="{Binding Avatar.SelectCommandAsync}">
+                                                                Command="{Binding DataContext.PersonalDocuments.PreviewCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                                CommandParameter="{Binding }">
                                                             <Control Template="{StaticResource Magnifier}"/>
                                                         </Button>
                                                         <Button Width="25" 

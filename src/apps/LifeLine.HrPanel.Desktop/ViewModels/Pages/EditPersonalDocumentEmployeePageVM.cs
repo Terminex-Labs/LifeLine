@@ -133,7 +133,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             set => SetProperty(ref _personalDocumentDisplay, value);
         }
         private void CreateNewPersonalDocumentDisplay()
-            => PersonalDocumentDisplay = new PersonalDocumentDisplay(new PersonalDocumentResponse(Guid.Empty, Guid.Empty, string.Empty, string.Empty), DocumentTypes, string.Empty, SaveStatus.Local);
+            => PersonalDocumentDisplay = new PersonalDocumentDisplay(new PersonalDocumentResponse(Guid.Empty, Guid.Empty, string.Empty, string.Empty, string.Empty), DocumentTypes, SaveStatus.Local);
 
         #endregion
 
@@ -181,8 +181,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                     (
                         SelectedDocumentType.Id,
                         PersonalDocumentDisplay.DocumentNumber,
-                        PersonalDocumentDisplay.DocumentSeries
-                        // TODO : Добавить id для pdf файла 
+                        PersonalDocumentDisplay.DocumentSeries,
+                        FileConst.BUCKET_NAME,
+                        PersonalDocumentDisplay.FileName
                     )
                 );
 

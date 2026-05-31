@@ -18,6 +18,8 @@ using LifeLine.Employee.Service.Client.Services.Specialty;
 using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Enums;
 using LifeLine.HrPanel.Desktop.Models;
+using LifeLine.HrPanel.Desktop.Services.FilePreview;
+using LifeLine.HrPanel.Desktop.Services.GeneratePdf;
 using LifeLine.HrPanel.Desktop.ViewModels.Features;
 using Shared.Contracts.Request.EmployeeService.Assignment;
 using Shared.Contracts.Request.EmployeeService.ContactInformation;
@@ -28,7 +30,9 @@ using Shared.Contracts.Request.EmployeeService.PersonalDocument;
 using Shared.Contracts.Request.EmployeeService.WorkPermit;
 using Shared.Contracts.Request.Files;
 using Shared.Contracts.Response.EmployeeService;
+using Shared.Contracts.Response.Files;
 using Shared.WPF.Commands;
+using Shared.WPF.Enums;
 using Shared.WPF.Extensions;
 using Shared.WPF.Services.Conversion;
 using Shared.WPF.Services.FileDialog;
@@ -44,6 +48,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         private readonly IEmployeeService _employeeService;
         private readonly IFileDialogService _fileDialogService;
         private readonly IFileStorageService _fileStorageService;
+        private readonly IFilePreviewService _filePreviewService;
         private readonly IGenderReadOnlyService _genderReadOnlyService;
         private readonly IStatusReadOnlyService _statusReadOnlyService;
         private readonly ISpecialtyReadOnlyService _specialtyReadOnlyService;
@@ -67,9 +72,12 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         public EmployeeCreatePageVM
             (
+
                 IEmployeeService employeeService,
                 IFileDialogService fileDialogService,
                 IFileStorageService fileStorageService,
+                IFilePreviewService filePreviewService,
+                IGeneratePdfService generatePdfService,
                 IGenderReadOnlyService genderReadOnlyService,
                 IStatusReadOnlyService statusReadOnlyService,
                 ISpecialtyReadOnlyService specialtyReadOnlyService,
@@ -95,6 +103,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             _employeeService = employeeService;
             _fileDialogService = fileDialogService;
             _fileStorageService = fileStorageService;
+            _filePreviewService = filePreviewService;
             _genderReadOnlyService = genderReadOnlyService;
             _statusReadOnlyService = statusReadOnlyService;
             _specialtyReadOnlyService = specialtyReadOnlyService;
@@ -119,7 +128,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             PersonalInfo = new();
             PersonalPhoto = new(_fileDialogService, _imageCompressionService);
             ContactInformation = new();
-            PersonalDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes);
+            PersonalDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentConversionService, DocumentTypes);
             EducationDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes, EducationLevels);
             WorkPermits = new(_fileDialogService, _documentConversionService, PermitTypes, AdmissionStatuses);
             Specialties = new();
@@ -333,81 +342,62 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         private async Task<Result> CreatePersonalDocuments()
         {
-            var personalDocumentService = _personalDocumentApiServiceFactory.Create(PersonalDocuments!.EmployeeId!);
+            if (PersonalDocuments == null)
+                return Result.Failure(Error.Validation("Данные отсутствуют!"));
 
-            // 1️⃣ Создаём записи в БД
-            var dbResult = await personalDocumentService.CreateManyAsync
-                (
-                    new CreateManyPersonalDocumentsRequest
+            var documentsToSave = PersonalDocuments.LocalPersonalDocuments
+                .Where(x => x.SaveStatus == SaveStatus.Local).ToList();
+
+            if (documentsToSave.Count == 0)
+                return Result.Failure(Error.Validation("Документы для сохранения отсутствуют!"));
+
+            //var documentsWithFiles = documentsToSave.Where(x => x.HasFileForUpload).ToList();
+
+            IReadOnlyList<UploadFileResponse>? uploadResponses = null;
+
+            if (documentsToSave.Count > 0)
+            {
+                var uploadRequests = documentsToSave
+                    .Select(doc => new UploadFilesDataRequest
                         (
-                            [.. PersonalDocuments.LocalPersonalDocuments.Select
-                                (x =>
-                                    new CreateDataPersonalDocumentRequest
-                                    (
-                                        x.DocumentTypeId.ToString(),
-                                        x.DocumentNumber,
-                                        x.DocumentSeries,
-                                        null
-                                    )
-                                )
-                            ]
-                        )
-                );
-
-            if (dbResult.IsFailure)
-                return Result.Failure(dbResult.Errors);
-
-            // 2️⃣ Загружаем файлы в MinIO (поддержка и байтов, и путей)
-            var filesToUpload = PersonalDocuments.LocalPersonalDocuments.Where(x => x.HasFileForUpload)
-                .Select(x =>
-                {
-                    if (x.FileBytes != null && !string.IsNullOrWhiteSpace(x.FileName))
-                    {
-                        // 👇 Загрузка из памяти (после конвертации)
-                        return new UploadFilesDataRequest(
                             BucketName: FileConst.BUCKET_NAME,
-                            AdditionalName: x.DocumentType.Name,
+                            AdditionalName: doc.DocumentType.Name,
                             SubFolder: FileConst.BuildEmployeeFolder
                                 (
                                     PersonalDocuments.EmployeeId!,
                                     EmployeeFolderType.PersonalDocument
                                 ),
                             FilePath: null,
-                            FileBytes: x.FileBytes,
-                            FileName: x.FileName,
-                            ContentType: x.ContentType ?? "application/pdf"
-                        );
-                    }
-                    else if (!string.IsNullOrWhiteSpace(x.FilePath) && System.IO.File.Exists(x.FilePath))
-                    {
-                        // 👇 Загрузка с диска (старая логика, для совместимости)
-                        return new UploadFilesDataRequest(
-                            BucketName: FileConst.BUCKET_NAME,
-                            AdditionalName: x.DocumentType.Name,
-                            SubFolder: FileConst.BuildEmployeeFolder
-                                (
-                                    PersonalDocuments.EmployeeId!,
-                                    EmployeeFolderType.PersonalDocument
-                                ),
-                            FilePath: x.FilePath,
-                            FileBytes: null,
-                            FileName: null,
-                            ContentType: null
-                        );
-                    }
+                            FileBytes: doc.FileBytes,
+                            FileName: doc.FileName,
+                            ContentType: doc.ContentType ?? "application/pdf"
+                        )).ToList();
 
-                    return null;
-                })
-                .Where(x => x != null)
-                .ToArray();
-
-            if (filesToUpload.Any())
-            {
-                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(filesToUpload.ToList()!));
+                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(uploadRequests));
 
                 if (uploadResult.IsFailure)
                     return Result.Failure(uploadResult.Errors);
+
+                uploadResponses = uploadResult.Value;
             }
+
+            var uploadedFileNames = new Queue<string>(uploadResponses?.Select(f => f.FileName) ?? Array.Empty<string>());
+
+            var dbRequests = documentsToSave
+                .Select(doc => new CreateDataPersonalDocumentRequest
+                (
+                    doc.DocumentTypeId.ToString(),
+                    doc.DocumentNumber,
+                    doc.DocumentSeries,
+                    FileConst.BUCKET_NAME,
+                    uploadedFileNames.TryDequeue(out var fileName) ? fileName : null
+                )).ToArray();
+
+            var service = _personalDocumentApiServiceFactory.Create(PersonalDocuments.EmployeeId!);
+            var dbResult = await service.CreateManyAsync(new CreateManyPersonalDocumentsRequest([.. dbRequests]));
+
+            if (dbResult.IsFailure)
+                return Result.Failure(dbResult.Errors);
 
             return Result.Success();
         }

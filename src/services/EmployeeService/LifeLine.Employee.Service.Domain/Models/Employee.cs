@@ -516,7 +516,8 @@ namespace LifeLine.Employee.Service.Domain.Models
                 Guid documentTypeId,
                 string documentNumber,
                 string? documentSeries,
-                ImageKey? fileKey
+                string? bucketName,
+                string? fileName
             )
         {
             var personalDocument = PersonalDocument.Create
@@ -525,7 +526,8 @@ namespace LifeLine.Employee.Service.Domain.Models
                     documentTypeId,
                     documentNumber,
                     documentSeries,
-                    fileKey
+                    bucketName,
+                    fileName
                 );
 
             _personalDocuments.Add(personalDocument);
@@ -562,6 +564,17 @@ namespace LifeLine.Employee.Service.Domain.Models
             GuardException.Against.That(document == null, () => new NotFoundDocumentException($"Персональный документ не найден!"));
             
             document!.UpdateDocumentSeries(documentSeries != null ? DocumentSeries.Create(documentSeries) : DocumentSeries.Null);
+        }
+
+        public void UpdateFileKeyPersonalDocument(Guid id, string? bucketName, string? fileName)
+        {
+            GuardException.Against.That(PersonalDocuments.Count == 0, () => new EmptyPersonalDocumentException($"Файл Персональных документов у пользователя: '{Surname} {Name} {Patronymic}' не существует!"));
+            
+            var document = this.PersonalDocuments.FirstOrDefault(d => d.Id == id);
+            
+            GuardException.Against.That(document == null, () => new NotFoundDocumentException($"Персональный документ не найден!"));
+            
+            document!.UpdateFileKey(bucketName != null && fileName != null ? FileUrl.Create(bucketName, fileName).Value : null);
         }
 
         public void DeletePersonalDocument(Guid personalDocumentId)

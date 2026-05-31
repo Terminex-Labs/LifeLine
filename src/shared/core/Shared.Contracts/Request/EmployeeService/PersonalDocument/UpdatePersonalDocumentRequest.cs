@@ -4,6 +4,8 @@
         (
             string DocumentTypeId,
             string DocumentNumber,
-            string? DocumentSeries
+            string? DocumentSeries,
+            string? BucketName,
+            string? FileName
         );
 }
