@@ -19,12 +19,12 @@
     {
         public readonly string Value = value;
 
-        public readonly static EmployeeFolderType PersonalPhoto     = new ("personal photo");
+        public readonly static EmployeeFolderType PersonalPhoto     = new ("personal-photo");
 
-        public readonly static EmployeeFolderType PersonalDocument  = new ("personal document");
-        public readonly static EmployeeFolderType EducationDocument = new ("education document");
+        public readonly static EmployeeFolderType PersonalDocument  = new ("personal-document");
+        public readonly static EmployeeFolderType EducationDocument = new ("education-document");
         public readonly static EmployeeFolderType Specialty         = new ("specialty");
-        public readonly static EmployeeFolderType WorkPermit        = new ("work permit");
+        public readonly static EmployeeFolderType WorkPermit        = new ("work-permit");
         public readonly static EmployeeFolderType Assignment        = new ("assignment");
     }
 
@@ -32,7 +32,7 @@
     {
         public readonly string Value = value;
 
-        public readonly static PatientFolderType PersonalDocument   = new ("personal document");
+        public readonly static PatientFolderType PersonalDocument   = new ("personal-document");
 
         public readonly static PatientFolderType MRT                = new ($"{FileConst.ANALIZES_FOLDER}/mrt");
         public readonly static PatientFolderType KT                 = new ($"{FileConst.ANALIZES_FOLDER}/kt");
