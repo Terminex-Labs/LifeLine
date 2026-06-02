@@ -74,6 +74,10 @@ namespace LifeLine.Employee.Service.Infrastructure.Persistence.Configurations.Wr
                    .HasColumnName("TotalHours")
                    .HasColumnType("numeric")
                    .HasConversion(hours => hours != null ? hours.Value.Value.TotalHours : (double?)null, value => value.HasValue ? Hours.Create(value.Value) : null);
+
+            builder.Property(x => x.FileKey)
+                   .HasColumnName("FileKey")
+                   .HasConversion(outDB => outDB.HasValue ? outDB.Value.Value : null, inDB => string.IsNullOrWhiteSpace(inDB) ? null : new FileUrl(inDB));
         }
     }
 }

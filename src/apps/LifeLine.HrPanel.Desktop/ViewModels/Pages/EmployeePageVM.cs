@@ -144,7 +144,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             PersonalPhoto = new(_fileDialogService, _imageCompressionService);
             ContactInformation = new();
             PersonalDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentConversionService, DocumentTypes);
-            EducationDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes, EducationLevels);
+            EducationDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentConversionService, DocumentTypes, EducationLevels);
             WorkPermits = new(_fileDialogService, _documentConversionService, PermitTypes, AdmissionStatuses);
             Specialties = new();
             AssigmentsContracts = new(_fileDialogService, _documentConversionService, _positionReadOnlyApiServiceFactory, Departments, Managers, Statuses, EmployeeTypes);
@@ -540,8 +540,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                                             x.QualificationAwardedName,
                                             x.EducationSpecialtyName,
                                             x.ProgramName,
-                                            x.TotalHours.ToString()
-                                        ), EducationLevels, DocumentTypes, string.Empty, SaveStatus.DataBase
+                                            x.TotalHours.ToString(),
+                                            x.EducationDocumentFileKey
+                                        ), EducationLevels, DocumentTypes, SaveStatus.DataBase
                                 )
                         ).ToList()
                 );
@@ -1358,68 +1359,75 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync CreateEducationdocumentCommand { get; private set; }
         private async Task Execute_CreateEducationdocumentCommand()
         {
-            var educationDocumentService = _educationDocumentApiServiceFactory.Create(PersonalDocuments!.EmployeeId!);
-
-            var dbResult = await educationDocumentService.CreateManyAsync
-                (
-                    new CreateManyEducationDocumentsReqeust
-                        (
-                            [.. EducationDocuments.LocalEducationDocuments.Where(x => x.SaveStatus == SaveStatus.Local)
-                                .Select
-                                (
-                                    x => new CreateDataEducationDocumentReqeust
-                                        (
-                                            x.EducationLevel.Id,
-                                            x.DocumentType.Id,
-                                            x.DocumentNumber,
-                                            x.IssuedDate.ToString(),
-                                            x.OrganizationName,
-                                            x.QualificationAwardedName,
-                                            x.SpecialtyName,
-                                            x.ProgramName,
-                                            x.TotalHours
-                                        )
-                                )
-                            ]
-                        )
-                );
-
-            if (dbResult.IsFailure)
+            if (EducationDocuments == null)
             {
-                MessageBox.Show($"{dbResult.Errors}");
+                MessageBox.Show("Данные отсутствуют!");
                 return;
             }
 
-            var filesToUpload = EducationDocuments.LocalEducationDocuments.Where(x => x.HasFileForUpload)
-                .Select
-                    (
-                        x => new UploadFilesDataRequest
-                            (
-                                BucketName: FileConst.BUCKET_NAME,
-                                AdditionalName: x.DocumentType.Name,
-                                SubFolder: FileConst.BuildEmployeeFolder
-                                    (
-                                        EducationDocuments.EmployeeId!,
-                                        EmployeeFolderType.EducationDocument
-                                    ),
-                                FilePath: null,
-                                FileBytes: x.FileBytes,
-                                FileName: x.FileName,
-                                ContentType: x.ContentType ?? "application/pdf"
-                            )
-                    )
-                    .Where(x => x != null)
-                    .ToArray();
+            var documentsToSave = EducationDocuments.LocalEducationDocuments
+                .Where(x => x.SaveStatus == SaveStatus.Local).ToList();
 
-            if (filesToUpload.Any())
+            if (documentsToSave.Count == 0)
+                return;
+
+            IReadOnlyList<UploadFileResponse>? uploadResponses = null;
+
+            if (documentsToSave.Count > 0)
             {
-                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(filesToUpload.ToList()!));
+                var uploadRequests = documentsToSave
+                    .Select(doc => new UploadFilesDataRequest
+                        (
+                            BucketName: FileConst.BUCKET_NAME,
+                            AdditionalName: doc.DocumentType.Name,
+                            SubFolder: FileConst.BuildEmployeeFolder
+                                (
+                                    EducationDocuments.EmployeeId!,
+                                    EmployeeFolderType.EducationDocument
+                                ),
+                            //FilePath: null,
+                            FileBytes: doc.FileBytes,
+                            FileName: doc.FileName,
+                            ContentType: doc.ContentType ?? "application/pdf"
+                        )).ToList();
+
+                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(uploadRequests));
 
                 if (uploadResult.IsFailure)
                 {
-                    MessageBox.Show($"{uploadResult.Errors}");
+                    MessageBox.Show(uploadResult.StringMessage);
                     return;
                 }
+
+                uploadResponses = uploadResult.Value;
+            }
+
+            var uploadedFileNames = new Queue<string>(uploadResponses?.Select(f => f.FileName) ?? Array.Empty<string>());
+
+            var dbRequest = documentsToSave
+                .Select(doc => new CreateDataEducationDocumentReqeust
+                (
+                    doc.EducationLevel.Id,
+                    doc.DocumentType.Id,
+                    doc.DocumentNumber,
+                    doc.IssuedDate.ToString(),
+                    doc.OrganizationName,
+                    doc.QualificationAwardedName,
+                    doc.SpecialtyName,
+                    doc.ProgramName,
+                    doc.TotalHours,
+                    FileConst.BUCKET_NAME,
+                    uploadedFileNames.TryDequeue(out var fileName) ? fileName : null
+                ));
+
+            var service = _educationDocumentApiServiceFactory.Create(PersonalDocuments!.EmployeeId!);
+
+            var dbResult = await service.CreateManyAsync(new CreateManyEducationDocumentsReqeust([.. dbRequest]));
+
+            if (dbResult.IsFailure)
+            {
+                MessageBox.Show($"{dbResult.StringMessage}");
+                return;
             }
 
             foreach (var item in EducationDocuments.LocalEducationDocuments)
@@ -1434,11 +1442,70 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync UpdateEducationdocumentCommand { get; private set; }
         private async Task Execute_UpdateEducationdocumentCommand()
         {
+            if (!EducationDocuments.PendingFilePaths.Any())
+            {
+                MessageBox.Show("Выберите хотя бы один файл для добавления", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var fileBytes = new List<byte[]>();
+            var fileNames = new List<string>();
+
+            foreach (var path in EducationDocuments.PendingFilePaths.Select(x => x.FilePath))
+            {
+                if (System.IO.File.Exists(path))
+                {
+                    fileBytes.Add(await System.IO.File.ReadAllBytesAsync(path));
+                    fileNames.Add(Path.GetFileName(path));
+                }
+            }
+
+            if (!fileBytes.Any())
+            {
+                MessageBox.Show("Не удалось прочитать выбранные файлы", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var pdfBytes = await _documentConversionService.ConvertImagesToPdfAsync
+                (
+                    EducationDocuments.DocumentType.Name,
+                    EducationDocuments.EmployeeId!,
+                    fileBytes,
+                    fileNames
+                );
+
+            var fileExtension = $"{EducationDocuments.DocumentNumber}.pdf";
+
+            var s3Result = await _fileStorageService.UploadFileAsync
+                (
+                    new UploadFileRequest
+                        (
+                            FileConst.BUCKET_NAME,
+                            EducationDocuments.DocumentType.Name,
+                            FileConst.BuildEmployeeFolder
+                                (
+                                    EducationDocuments.EmployeeId!,
+                                    EmployeeFolderType.EducationDocument
+                                ),
+                            //FilePath: null,
+                            FileBytes: pdfBytes,
+                            FileName: fileExtension
+                        )
+                );
+
+            if (s3Result.IsFailure && s3Result.Value == null)
+            {
+                MessageBox.Show(s3Result.StringMessage);
+                return;
+            }
+
             var educationDocumentService = _educationDocumentApiServiceFactory.Create(EducationDocuments!.EmployeeId!);
 
             var dbResult = await educationDocumentService.UpdateEducationDocumentAsync
                 (
-                    Guid.Parse(EducationDocuments.SelectedEducationDocument.EducationDocumentId),
+                    Guid.Parse(EducationDocuments.SelectedLocalEducationDocument.EducationDocumentId),
                     new UpdateEducationDocumentRequest
                         (
                             EducationDocuments.EducationLevel!.Id,
@@ -1449,7 +1516,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                             EducationDocuments.QualificationAwardedName,
                             EducationDocuments.SpecialtyName,
                             EducationDocuments.ProgramName,
-                            EducationDocuments.TotalHours
+                            EducationDocuments.TotalHours,
+                            FileConst.BUCKET_NAME,
+                            s3Result.Value!.FileName
                         )
                 );
 
@@ -1459,7 +1528,15 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 return;
             }
 
-            EducationDocuments.EducationDocumentsView.Refresh();
+            var (bucketName, fileName) = S3UrlParser.Parse(EducationDocuments.SelectedLocalEducationDocument.FileKey!);
+            var deleteFileResult = await _fileStorageService.DeleteFileAsync(new DeleteFileRequest(bucketName!, fileName!));
+
+            if (deleteFileResult.IsFailure)
+            {
+                MessageBox.Show($"{deleteFileResult.Errors}");
+                return;
+            }
+
             EducationDocuments.ClearProperty();
         }
         private bool CanExecute_UpdateEducationdocumentCommand() => true;
@@ -1477,8 +1554,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                     EducationDocuments.LocalEducationDocuments.Remove(display);
                     EducationDocuments.EducationDocumentsView.Refresh();
                     EducationDocuments.ClearProperty();
-                }
-                ,
+                },
                 SaveStatus.DataBase => async () =>
                 {
                     var result = await _educationDocumentApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeleteEducationDocumentAsync(Guid.Parse(display.EducationDocumentId));
@@ -1486,11 +1562,16 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                     if (!result.IsSuccess)
                         errors.AddRange(result.Errors);
 
+                    var (bucketName, fileName) = S3UrlParser.Parse(EducationDocuments.SelectedLocalEducationDocument.FileKey!);
+                    var deleteFileResult = await _fileStorageService.DeleteFileAsync(new DeleteFileRequest(bucketName!, fileName!));
+
+                    if (deleteFileResult.IsFailure)
+                        errors.AddRange(deleteFileResult.Errors);
+
                     EducationDocuments.LocalEducationDocuments.Remove(display);
                     EducationDocuments.EducationDocumentsView.Refresh();
                     EducationDocuments.ClearProperty();
-                }
-                ,
+                },
 
                 _ => async () => Result.Success()
             };

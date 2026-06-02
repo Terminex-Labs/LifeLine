@@ -36,6 +36,7 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.EducationDocu
                 employee.UpdateSpecialtyName(Guid.Parse(request.Id), request.SpecialtyName);
                 employee.UpdateProgramName(Guid.Parse(request.Id), request.ProgramName);
                 employee.UpdateTotalHours(Guid.Parse(request.Id), request.TotalHours);
+                employee.UpdateFileKeyEducationDocument(Guid.Parse(request.Id), request.BucketName, request.FileName);
 
                 await _writeContext.SaveChangesAsync(cancellationToken);
 

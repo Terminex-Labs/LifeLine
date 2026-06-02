@@ -1,4 +1,7 @@
-﻿using LifeLine.HrPanel.Desktop.Models;
+﻿using LifeLine.File.Service.Client;
+using LifeLine.HrPanel.Desktop.Models;
+using LifeLine.HrPanel.Desktop.Services.FilePreview;
+using Shared.Contracts.Request.Files;
 using Shared.Contracts.Response.EmployeeService;
 using Shared.WPF.Commands;
 using Shared.WPF.Constants;
@@ -8,6 +11,7 @@ using Shared.WPF.Services.Conversion;
 using Shared.WPF.Services.FileDialog;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Data;
@@ -17,6 +21,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
     internal sealed class EducationDocumentsVM : BaseEmployeeViewModel
     {
         private readonly IFileDialogService _fileDialogService;
+        private readonly IFileStorageService _fileStorageService;
+        private readonly IFilePreviewService _filePreviewService;
         private readonly IDocumentConversionService _documentConversionService;
 
         private readonly IReadOnlyCollection<DocumentTypeDisplay> _documentTypes;
@@ -25,12 +31,17 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         public EducationDocumentsVM
             (
                 IFileDialogService fileDialogService,
+                IFileStorageService fileStorageService,
+                IFilePreviewService filePreviewService,
                 IDocumentConversionService documentConversionService,
+
                 IReadOnlyCollection<DocumentTypeDisplay> documentTypes,
                 IReadOnlyCollection<EducationLevelDisplay> educationLevels
             )
         {
             _fileDialogService = fileDialogService;
+            _fileStorageService = fileStorageService;
+            _filePreviewService = filePreviewService;
             _documentConversionService = documentConversionService;
 
             _documentTypes = documentTypes;
@@ -41,6 +52,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             EducationDocumentsView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(EducationDocumentDisplay.SaveStatus)));
 
             SelectMultipleCommand = new RelayCommand(Execute_SelectMultipleCommand);
+            PreviewCommand = new RelayCommandAsync<PendingFileItem>(Execute_PreviewCommand);
             RemovePendingFileCommand = new RelayCommand<PendingFileItem>(Execute_RemovePendingFileCommand);
             AddEducationDocumentCommandAsync = new RelayCommandAsync(Execute_AddEducationDocumentCommandAsync, CanExecute_AddEducationDocumentCommand);
         }
@@ -144,23 +156,19 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             }
         }
 
-        public string? FilePath
+        private EducationDocumentDisplay? _selectedLocalEducationDocument = null!;
+        public EducationDocumentDisplay? SelectedLocalEducationDocument
         {
-            get => field;
-            set => SetProperty(ref field, value);
-        }
-
-        private EducationDocumentDisplay _selectedEducationDocument = null!;
-        public EducationDocumentDisplay SelectedEducationDocument
-        {
-            get => _selectedEducationDocument;
+            get => _selectedLocalEducationDocument;
             set
             {
                 if (value != null)
                 {
                     SetProp(value);
 
-                    SetProperty(ref _selectedEducationDocument, value);
+                    SetProperty(ref _selectedLocalEducationDocument, value);
+
+                    _ = LoadDocumentToQueueAsync(value);
                 }
             }
         }
@@ -179,12 +187,38 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             DocumentType = value.DocumentType;
         }
 
+        private async Task LoadDocumentToQueueAsync(EducationDocumentDisplay document)
+        {
+            PendingFilePaths.Clear();
+
+            if (document.SaveStatus != SaveStatus.DataBase)
+                return;
+
+            if (string.IsNullOrWhiteSpace(document.FileKey))
+                return;
+
+            var (bucketName, fileName) = S3UrlParser.Parse(document.FileKey);
+
+            var metadataResult = await _fileStorageService.GetFileMetadataAsync(new GetFileMetadataRequest(bucketName!, fileName!));
+
+            if (metadataResult.IsFailure || metadataResult.Value == null)
+            {
+                MessageBox.Show($"Не удалось получить метаданные: {metadataResult.StringMessage}");
+                return;
+            }
+
+            var pendingItem = PendingFileItem.FromMetadata(PendingFilePaths.Count + 1, metadataResult.Value, document.FileKey);
+
+            PendingFilePaths.Add(pendingItem);
+            UpdateIndexes();
+        }
+
         public ObservableCollection<PendingFileItem> PendingFilePaths { get; private set; } = [];
 
         public RelayCommand SelectMultipleCommand { get; private set; }
         private void Execute_SelectMultipleCommand()
         {
-            var paths = _fileDialogService.GetFiles($"Выберите файлы: {FileDialogConsts.PERSONAL_DOCUMENT}", FileFilters.ImagesAndPdf);
+            var paths = _fileDialogService.GetFiles($"Выберите файлы: {FileDialogConsts.EDUCATION_DOCUMENT}", FileFilters.ImagesAndPdf);
 
             if (paths?.Any() == true)
             {
@@ -203,17 +237,48 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                 UpdateIndexes();
         }
 
+        public RelayCommandAsync<PendingFileItem>? PreviewCommand { get; private set; }
+        private async Task Execute_PreviewCommand(PendingFileItem item)
+        {
+            if (item == null)
+            {
+                Debug.WriteLine($"[EducationDocumentsVM] [Execute_PreviewCommand] item пуст!");
+                return;
+            }
+
+            try
+            {
+                string? tempPath = null;
+
+                if (item.IsRemoteFile && !string.IsNullOrWhiteSpace(item.S3Url))
+                    tempPath = await _filePreviewService.DownloadRemoteFileToTempAsync(item.S3Url, item.FileName);
+                else if (!string.IsNullOrWhiteSpace(item.FilePath) && System.IO.File.Exists(item.FilePath))
+                    tempPath = _filePreviewService.CopyLocalFileToTempAsync(item.FilePath, item.FileName);
+
+                if (string.IsNullOrWhiteSpace(tempPath))
+                {
+                    MessageBox.Show("Не удалось подготовить файл для просмотра", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                _filePreviewService.OpenInDefaultApplication(tempPath);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PreviewCommand] Ошибка: {ex.Message}");
+                MessageBox.Show($"Ошибка при открытии файла: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         public ObservableCollection<EducationDocumentDisplay> LocalEducationDocuments { get; private init; } = [];
         public ICollectionView EducationDocumentsView  { get; private init; } = null!;
 
         public RelayCommandAsync AddEducationDocumentCommandAsync { get; private set; }
         private async Task Execute_AddEducationDocumentCommandAsync()
         {
-            var filesToProcess = PendingFilePaths.Any()
-                ? PendingFilePaths.Select(x => x.FilePath).ToArray()
-                : (FilePath != null ? [FilePath] : Array.Empty<string>());
-
-            if (!filesToProcess.Any())
+            if (!PendingFilePaths.Any())
             {
                 MessageBox.Show("Выберите хотя бы один файл для добавления", "Внимание",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -224,13 +289,15 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             {
                 var fileBytes = new List<byte[]>();
                 var fileNames = new List<string>();
+                var contentType = new List<string>();
 
-                foreach (var path in filesToProcess)
+                foreach (var pendingFile in PendingFilePaths)
                 {
-                    if (System.IO.File.Exists(path))
+                    if (System.IO.File.Exists(pendingFile.FilePath))
                     {
-                        fileBytes.Add(await System.IO.File.ReadAllBytesAsync(path));
-                        fileNames.Add(Path.GetFileName(path));
+                        fileBytes.Add(await System.IO.File.ReadAllBytesAsync(pendingFile.FilePath));
+                        fileNames.Add(Path.GetFileName(pendingFile.FilePath));
+                        contentType.Add(Path.GetExtension(pendingFile.ContentType));
                     }
                 }
 
@@ -249,7 +316,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                         fileNames
                     );
 
-                var fileName = ".pdf";
+                var fileName = $"{DocumentNumber}.pdf";
 
                 LocalEducationDocuments.Add
                     (
@@ -267,11 +334,11 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                                         QualificationAwardedName,
                                         SpecialtyName,
                                         ProgramName,
-                                        TotalHours.ToString()
+                                        TotalHours.ToString(),
+                                        null
                                     ),
                                 _educationLevels, 
-                                _documentTypes, 
-                                FilePath,
+                                _documentTypes,
                                 SaveStatus.Local
                             )
                         {
@@ -307,9 +374,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             TotalHours = TimeSpan.Zero;
             EducationLevel = null!;
             DocumentType = null!;
-            FilePath = string.Empty;
 
             PendingFilePaths.Clear();
+            SelectedLocalEducationDocument = null;
         }
 
         private void UpdateIndexes()

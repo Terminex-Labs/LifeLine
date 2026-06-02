@@ -90,7 +90,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
     
-    <Grid Grid.Row="1">
+    <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>
@@ -100,7 +100,7 @@
         <Border Grid.Column="0" Background="{StaticResource App.SecondColor}" CornerRadius="6" Margin="0 0 5 0">
             <Border Margin="5" Background="{StaticResource App.MainColor}" CornerRadius="6" BorderBrush="#386FD6" BorderThickness="2">
                 <DataGrid ItemsSource="{Binding EducationDocuments.EducationDocumentsView}" 
-                          SelectedItem="{Binding EducationDocuments.SelectedEducationDocument}"
+                          SelectedItem="{Binding EducationDocuments.SelectedLocalEducationDocument}"
                           AutoGenerateColumns="False" 
                           CanUserAddRows="False"
                           HorizontalContentAlignment="Stretch" 
@@ -191,268 +191,257 @@
             </Border>
         </Border>
 
-        <Grid Grid.Column="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="50"/>
-                <RowDefinition Height="50"/>
-            </Grid.RowDefinitions>
-            
-            <ScrollViewer Grid.Row="0" Margin="5 0 0 0" VerticalScrollBarVisibility="Auto">
-                <Border Background="{StaticResource App.SecondColor}" CornerRadius="6">
-                    <Grid Margin="5">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="50"/>
-                        </Grid.RowDefinitions>
-                        <!--<CheckBox Content="Использовать документы об образовании" 
-                              IsChecked="{Binding IsUseEducationDocument}" 
-                              HorizontalAlignment="Center" DockPanel.Dock="Right" Margin="0 0 0 10" 
-                              Style="{StaticResource BaseChechBox}"/>-->
 
-                        <!-- Уровень образования / Тип документа -->
-                        <StackPanel Grid.Row="0">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+        <Border Grid.Column="1"  Background="{StaticResource App.SecondColor}" CornerRadius="6">
+            <Grid Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="50"/>
+                    <RowDefinition Height="50"/>
+                </Grid.RowDefinitions>
 
-                                <ComboBox Grid.Column="0" 
-                                          ItemsSource="{Binding DocumentTypes}" 
-                                          SelectedItem="{Binding EducationDocuments.DocumentType}"
-                                          DisplayMemberPath="Name" 
-                                          Margin="0 0 5 0"/>
+                <!-- Уровень образования / Тип документа -->
+                <StackPanel Grid.Row="0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                                <ComboBox Grid.Column="1" 
-                                          ItemsSource="{Binding EducationLevels}" 
-                                          SelectedItem="{Binding EducationDocuments.EducationLevel}"
-                                          DisplayMemberPath="Name" 
-                                          Margin="5 0 0 0"/>
-                            </Grid>
+                        <ComboBox Grid.Column="0" 
+                                  ItemsSource="{Binding DocumentTypes}" 
+                                  SelectedItem="{Binding EducationDocuments.DocumentType}"
+                                  DisplayMemberPath="Name" 
+                                  Margin="0 0 5 0"/>
 
-                            <!-- Номер документа / Дата выдачи -->
-                            <Grid Margin="0 10 0 0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="1" 
+                                  ItemsSource="{Binding EducationLevels}" 
+                                  SelectedItem="{Binding EducationDocuments.EducationLevel}"
+                                  DisplayMemberPath="Name" 
+                                  Margin="5 0 0 0"/>
+                    </Grid>
 
-                                <cc:PlaceHolderTextBox Grid.Column="0" PlaceHolder="Номер документа*" Margin="0 0 5 0"
-                                                       Text="{Binding EducationDocuments.DocumentNumber, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBox.PlaceHolder}"/>
+                    <!-- Номер документа / Дата выдачи -->
+                    <Grid Margin="0 10 0 0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                                <DatePicker Grid.Column="1" SelectedDate="{Binding EducationDocuments.IssuedDate, UpdateSourceTrigger=PropertyChanged}" Margin="5 0 0 0"/>
-                            </Grid>
+                        <cc:PlaceHolderTextBox Grid.Column="0" PlaceHolder="Номер документа*" Margin="0 0 5 0"
+                                               Text="{Binding EducationDocuments.DocumentNumber, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBox.PlaceHolder}"/>
 
-                            <!-- Наименование организации / Наименование квалификации -->
-                            <Grid Margin="0 10 0 0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+                        <DatePicker Grid.Column="1" SelectedDate="{Binding EducationDocuments.IssuedDate, UpdateSourceTrigger=PropertyChanged}" Margin="5 0 0 0"/>
+                    </Grid>
 
-                                <cc:PlaceHolderTextBox Grid.Column="0" PlaceHolder="Наименование организации*" Margin="0 0 5 0"
-                                                       Text="{Binding EducationDocuments.OrganizationName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBox.PlaceHolder}"/>
+                    <!-- Наименование организации / Наименование квалификации -->
+                    <Grid Margin="0 10 0 0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                                <cc:PlaceHolderTextBox Grid.Column="1" PlaceHolder="Наименование квалификации" Margin="5 0 0 0"
-                                                       Text="{Binding EducationDocuments.QualificationAwardedName}" Style="{StaticResource TextBox.PlaceHolder}"/>
-                            </Grid>
+                        <cc:PlaceHolderTextBox Grid.Column="0" PlaceHolder="Наименование организации*" Margin="0 0 5 0"
+                                               Text="{Binding EducationDocuments.OrganizationName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBox.PlaceHolder}"/>
 
-                            <!-- Наименование специальности / Наименование программы -->
-                            <Grid Margin="0 10 0 0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+                        <cc:PlaceHolderTextBox Grid.Column="1" PlaceHolder="Наименование квалификации" Margin="5 0 0 0"
+                                               Text="{Binding EducationDocuments.QualificationAwardedName}" Style="{StaticResource TextBox.PlaceHolder}"/>
+                    </Grid>
 
-                                <cc:PlaceHolderTextBox Grid.Column="0" PlaceHolder="Наименование специальности" Margin="0 0 5 0"
-                                                       Text="{Binding EducationDocuments.SpecialtyName}" Style="{StaticResource TextBox.PlaceHolder}"/>
+                    <!-- Наименование специальности / Наименование программы -->
+                    <Grid Margin="0 10 0 0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                                <cc:PlaceHolderTextBox Grid.Column="1" PlaceHolder="Наименование программы" Margin="5 0 0 0"
-                                                       Text="{Binding EducationDocuments.ProgramName}" Style="{StaticResource TextBox.PlaceHolder}"/>
-                            </Grid>
+                        <cc:PlaceHolderTextBox Grid.Column="0" PlaceHolder="Наименование специальности" Margin="0 0 5 0"
+                                               Text="{Binding EducationDocuments.SpecialtyName}" Style="{StaticResource TextBox.PlaceHolder}"/>
 
-                            <!-- Количество часов -->
-                            <cc:PlaceHolderTextBox Grid.Column="1" PlaceHolder="Количество часов" Margin="0 10 0 0"
-                                                   Text="{Binding EducationDocuments.TotalHours}" Style="{StaticResource TextBox.PlaceHolder}"/>
+                        <cc:PlaceHolderTextBox Grid.Column="1" PlaceHolder="Наименование программы" Margin="5 0 0 0"
+                                               Text="{Binding EducationDocuments.ProgramName}" Style="{StaticResource TextBox.PlaceHolder}"/>
+                    </Grid>
 
-                            <!-- Файл -->
-                            <StackPanel Grid.Row="1" Margin="0 10 0 0">
-                                <Button Content="Выбрать скан" 
-                                    Width="170" Height="40" 
-                                    HorizontalAlignment="Right"
-                                    Command="{Binding EducationDocuments.SelectMultipleCommand}" 
-                                    Style="{StaticResource App.Button}"/>
+                    <!-- Количество часов -->
+                    <cc:PlaceHolderTextBox Grid.Column="1" PlaceHolder="Количество часов" Margin="0 10 0 0"
+                                           Text="{Binding EducationDocuments.TotalHours}" Style="{StaticResource TextBox.PlaceHolder}"/>
 
-                                <ListView x:Name="ItemsListView"
-                                      ItemsSource="{Binding EducationDocuments.PendingFilePaths}"
-                                      d:ItemsSource="{d:SampleData ItemCount=10}"
-                                      Background="#1E1E1E"
-                                      BorderThickness="0"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                      ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                      ScrollViewer.CanContentScroll="True"
-                                      VirtualizingPanel.IsVirtualizing="True"
-                                      VirtualizingPanel.VirtualizationMode="Recycling">
-                                    <!-- Горизонтальная виртуализация -->
+                    <!-- Файл -->
+                    <StackPanel Grid.Row="1" Margin="0 10 0 0">
+                        <Button Content="Выбрать скан" 
+                                Width="170" Height="40" 
+                                HorizontalAlignment="Right"
+                                Command="{Binding EducationDocuments.SelectMultipleCommand}" 
+                                Style="{StaticResource App.Button}"/>
 
-                                    <!-- Панель для горизонтального расположения -->
-                                    <ListView.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal" 
-                                                    IsItemsHost="True"
-                                                    Margin="0"/>
-                                            <!-- Отступы вокруг всех items -->
-                                        </ItemsPanelTemplate>
-                                    </ListView.ItemsPanel>
+                        <ListView x:Name="ItemsListView"
+                                  ItemsSource="{Binding EducationDocuments.PendingFilePaths}"
+                                  d:ItemsSource="{d:SampleData ItemCount=10}"
+                                  Background="#1E1E1E"
+                                  BorderThickness="0"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                  ScrollViewer.CanContentScroll="True"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling">
+                            <!-- Горизонтальная виртуализация -->
 
-                                    <!-- Стиль ListViewItem -->
-                                    <ListView.ItemContainerStyle>
-                                        <Style TargetType="ListViewItem">
-                                            <Setter Property="Margin" Value="0"/>
-                                            <!-- Отступ между items -->
-                                            <Setter Property="Padding" Value="0"/>
-                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                            <!-- Панель для горизонтального расположения -->
+                            <ListView.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" 
+                                                IsItemsHost="True"
+                                                Margin="0"/>
+                                    <!-- Отступы вокруг всех items -->
+                                </ItemsPanelTemplate>
+                            </ListView.ItemsPanel>
 
-                                            <!-- Убираем стандартное выделение -->
-                                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                            <!-- Стиль ListViewItem -->
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="Margin" Value="0"/>
+                                    <!-- Отступ между items -->
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="VerticalContentAlignment" Value="Stretch"/>
 
-                                            <Style.Triggers>
-                                                <!-- Выделение при наведении -->
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Opacity" Value="0.9"/>
-                                                    <Setter Property="Background" Value="Magenta"/>
-                                                    <Setter Property="BorderBrush" Value="Magenta"/>
-                                                </Trigger>
+                                    <!-- Убираем стандартное выделение -->
+                                    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
 
-                                                <!-- Выделение выбранного элемента -->
-                                                <Trigger Property="IsSelected" Value="True">
-                                                    <Setter Property="Background" Value="#386FD6"/>
-                                                    <Setter Property="Foreground" Value="White"/>
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ListView.ItemContainerStyle>
+                                    <Style.Triggers>
+                                        <!-- Выделение при наведении -->
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Opacity" Value="0.9"/>
+                                            <Setter Property="Background" Value="Magenta"/>
+                                            <Setter Property="BorderBrush" Value="Magenta"/>
+                                        </Trigger>
 
-                                    <!-- Шаблон элемента (ваш Item) -->
-                                    <ListView.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="{StaticResource App.SecondColor}" CornerRadius="6">
-                                                <!-- Ширина каждого item -->
-                                                <Border BorderBrush="#386FD6" 
-                                                    Background="{StaticResource App.MainColor}" 
-                                                    BorderThickness="2" 
-                                                    CornerRadius="10" 
-                                                    HorizontalAlignment="Left" 
-                                                    VerticalAlignment="Top" 
-                                                    Margin="5">
+                                        <!-- Выделение выбранного элемента -->
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#386FD6"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ListView.ItemContainerStyle>
+
+                            <!-- Шаблон элемента (Item) -->
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource App.SecondColor}" CornerRadius="6">
+                                        <!-- Ширина каждого item -->
+                                        <Border BorderBrush="#386FD6" 
+                                                Background="{StaticResource App.MainColor}" 
+                                                BorderThickness="2" 
+                                                CornerRadius="10" 
+                                                HorizontalAlignment="Left" 
+                                                VerticalAlignment="Top" 
+                                                Margin="5">
+                                            <StackPanel>
+                                                <Border BorderThickness="0 0 0 2" BorderBrush="#386FD6">
                                                     <StackPanel>
-                                                        <Border BorderThickness="0 0 0 2" BorderBrush="#386FD6">
-                                                            <StackPanel>
-                                                                <!-- 👇 Превью: если есть Thumbnail — показываем, иначе заглушка -->
-                                                                <Grid Width="150" Height="150" Margin="5">
-                                                                    <Image Source="{Binding Thumbnail}" Stretch="Uniform" 
-                                                                       d:Source="C:\Users\texno\Documents\Lightshot\Screenshot_4.png"
-                                                                       Visibility="{Binding Thumbnail, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                        <!-- 👇 Превью: если есть Thumbnail — показываем, иначе заглушка -->
+                                                        <Grid Width="150" Height="150" Margin="5">
+                                                            <Image Source="{Binding Thumbnail}" Stretch="Uniform" 
+                                                                   d:Source="C:\Users\texno\Documents\Lightshot\Screenshot_4.png"
+                                                                   Visibility="{Binding Thumbnail, Converter={StaticResource NullToVisibilityConverter}}"/>
 
-                                                                    <!-- Заглушка если нет превью -->
-                                                                    <TextBlock Text="{Binding FileExtension}"
-                                                                           FontSize="24"
-                                                                           FontWeight="Bold"
-                                                                           Foreground="#AAAAAA"
-                                                                           HorizontalAlignment="Center"
-                                                                           VerticalAlignment="Center"
-                                                                           Visibility="{Binding Thumbnail, Converter={StaticResource NotNullToVisibilityConverter}}"/>
-                                                                </Grid>
-
-                                                                <!-- 👇 Индекс и имя файла -->
-                                                                <TextBlock Text="{Binding Index, StringFormat='#{0}'}"
-                                                                       HorizontalAlignment="Center" 
-                                                                       FontSize="18" 
-                                                                       Margin="0 0 0 2"
-                                                                       Foreground="White"
-                                                                       FontWeight="Bold"/>
-                                                                <TextBlock Text="{Binding FileName}"
-                                                                       HorizontalAlignment="Center" 
-                                                                       FontSize="12" 
-                                                                       Margin="0 0 0 2"
+                                                            <!-- Заглушка если нет превью -->
+                                                            <TextBlock Text="{Binding FileExtension}"
+                                                                       FontSize="24"
+                                                                       FontWeight="Bold"
                                                                        Foreground="#AAAAAA"
-                                                                       TextTrimming="CharacterEllipsis"
-                                                                       MaxWidth="140"/>
-                                                                <TextBlock Text="{Binding FileSizeFormatted}"
-                                                                       HorizontalAlignment="Center" 
-                                                                       FontSize="10" 
-                                                                       Margin="0 0 0 5"
-                                                                       Foreground="#666666"/>
-                                                            </StackPanel>
-                                                        </Border>
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Visibility="{Binding Thumbnail, Converter={StaticResource NotNullToVisibilityConverter}}"/>
+                                                        </Grid>
 
-                                                        <!-- Кнопки управления -->
-                                                        <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0 2 0 2">
-                                                            <Button Width="25" 
-                                                                Background="Transparent" 
-                                                                BorderThickness="0"
-                                                                Command="{Binding Avatar.SelectCommandAsync}">
-                                                                <Control Template="{StaticResource AddIcon}"/>
-                                                                <Button.ToolTip>
-                                                                    <TextBlock Text="Добавить аватарку"/>
-                                                                </Button.ToolTip>
-                                                            </Button>
-                                                            <Button Width="25" 
-                                                                Background="Transparent" 
-                                                                BorderThickness="0"
-                                                                Margin="15 0 15 0"
-                                                                Command="{Binding Avatar.SelectCommandAsync}">
-                                                                <Control Template="{StaticResource Magnifier}"/>
-                                                            </Button>
-                                                            <Button Width="25" 
-                                                                Background="Transparent" 
-                                                                BorderThickness="0"
-                                                                Foreground="#F06870"
-                                                                Command="{Binding DataContext.EducationDocuments.RemovePendingFileCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
-                                                                CommandParameter="{Binding }">
-                                                                <Control Template="{StaticResource Trash}"/>
-                                                                <Button.ToolTip>
-                                                                    <TextBlock Text="Удалить"/>
-                                                                </Button.ToolTip>
-                                                            </Button>
-                                                        </WrapPanel>
+                                                        <!-- 👇 Индекс и имя файла -->
+                                                        <TextBlock Text="{Binding Index, StringFormat='#{0}'}"
+                                                                   HorizontalAlignment="Center" 
+                                                                   FontSize="18" 
+                                                                   Margin="0 0 0 2"
+                                                                   Foreground="White"
+                                                                   FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding FileName}"
+                                                                   HorizontalAlignment="Center" 
+                                                                   FontSize="12" 
+                                                                   Margin="0 0 0 2"
+                                                                   Foreground="#AAAAAA"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   MaxWidth="140"/>
+                                                        <TextBlock Text="{Binding FileSizeFormatted}"
+                                                                   HorizontalAlignment="Center" 
+                                                                   FontSize="10" 
+                                                                   Margin="0 0 0 5"
+                                                                   Foreground="#666666"/>
                                                     </StackPanel>
                                                 </Border>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ListView.ItemTemplate>
-                                </ListView>
-                            </StackPanel>
-                        </StackPanel>
-                    </Grid>
-                </Border>
-            </ScrollViewer>
 
-            <Button Grid.Row="1" Content="Добавить локально" Height="40"
-                    HorizontalAlignment="Stretch" VerticalAlignment="Center" 
-                    Command="{Binding EducationDocuments.AddEducationDocumentCommandAsync}" 
-                    Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+                                                <!-- Кнопки управления -->
+                                                <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0 2 0 2">
+                                                    <Button Width="25" 
+                                                            Background="Transparent" 
+                                                            BorderThickness="0"
+                                                            Command="{Binding Avatar.SelectCommandAsync}">
+                                                        <Control Template="{StaticResource AddIcon}"/>
+                                                        <Button.ToolTip>
+                                                            <TextBlock Text="Добавить аватарку"/>
+                                                        </Button.ToolTip>
+                                                    </Button>
+                                                    <Button Width="25" 
+                                                            Background="Transparent" 
+                                                            BorderThickness="0"
+                                                            Margin="15 0 15 0"
+                                                            Command="{Binding DataContext.EducationDocuments.PreviewCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                            CommandParameter="{Binding }">
+                                                        <Control Template="{StaticResource Magnifier}"/>
+                                                    </Button>
+                                                    <Button Width="25" 
+                                                            Background="Transparent" 
+                                                            BorderThickness="0"
+                                                            Foreground="#F06870"
+                                                            Command="{Binding DataContext.EducationDocuments.RemovePendingFileCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                            CommandParameter="{Binding }">
+                                                        <Control Template="{StaticResource Trash}"/>
+                                                        <Button.ToolTip>
+                                                            <TextBlock Text="Удалить"/>
+                                                        </Button.ToolTip>
+                                                    </Button>
+                                                </WrapPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </StackPanel>
 
-            <Button Grid.Row="2" Content="Продолжить" Height="40"
-                    HorizontalAlignment="Stretch" VerticalAlignment="Center" 
-                    Command="{Binding ExecuteStepCommand}" 
-                    CommandParameter="{x:Static enum:EmployeeCreationSteps.WorkPermits}"
-                    Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.CreateStep}, UpdateSourceTrigger=PropertyChanged}"
-                    Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+                <Button Grid.Row="1" Content="Добавить локально" Height="40"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center" 
+                        Command="{Binding EducationDocuments.AddEducationDocumentCommandAsync}" 
+                        Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
 
-            <Button Grid.Row="2" Content="Сохранить" Height="40"
-                    HorizontalAlignment="Stretch" VerticalAlignment="Center" 
-                    Command="{Binding CreateEducationdocumentCommand}" 
-                    Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Create}, UpdateSourceTrigger=PropertyChanged}"
-                    Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+                <Button Grid.Row="2" Content="Продолжить" Height="40"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center" 
+                        Command="{Binding ExecuteStepCommand}" 
+                        CommandParameter="{x:Static enum:EmployeeCreationSteps.WorkPermits}"
+                        Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.CreateStep}, UpdateSourceTrigger=PropertyChanged}"
+                        Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
 
-            <Button Grid.Row="2" Content="Обновить" Height="40"
-                    HorizontalAlignment="Stretch" VerticalAlignment="Center" 
-                    Command="{Binding UpdateEducationdocumentCommand}" 
-                    Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Update}, UpdateSourceTrigger=PropertyChanged}"
-                    Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
-        </Grid>
+                <Button Grid.Row="2" Content="Сохранить" Height="40"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center" 
+                        Command="{Binding CreateEducationdocumentCommand}" 
+                        Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Create}, UpdateSourceTrigger=PropertyChanged}"
+                        Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+
+                <Button Grid.Row="2" Content="Обновить" Height="40"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center" 
+                        Command="{Binding UpdateEducationdocumentCommand}" 
+                        Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Update}, UpdateSourceTrigger=PropertyChanged}"
+                        Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

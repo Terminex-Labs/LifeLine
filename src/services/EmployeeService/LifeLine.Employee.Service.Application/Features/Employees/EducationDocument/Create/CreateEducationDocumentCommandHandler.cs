@@ -41,7 +41,9 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.EducationDocu
                         request.QualificationAwardedName,
                         request.SpecialtyName,
                         request.ProgramName,
-                        request.TotalHours
+                        request.TotalHours,
+                        null, 
+                        null
                     );
 
                 await _context.SaveChangesAsync(cancellationToken);

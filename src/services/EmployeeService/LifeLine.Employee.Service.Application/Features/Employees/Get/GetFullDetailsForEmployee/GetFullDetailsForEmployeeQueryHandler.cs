@@ -82,7 +82,8 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.Get.GetFullDe
                                     x.QualificationAwardedName,
                                     x.EducationSpecialtyName,
                                     x.ProgramName,
-                                    x.TotalHours
+                                    x.TotalHours,
+                                    x.EducationDocumentFileKey
                                 )
                         ).ToList(),
 

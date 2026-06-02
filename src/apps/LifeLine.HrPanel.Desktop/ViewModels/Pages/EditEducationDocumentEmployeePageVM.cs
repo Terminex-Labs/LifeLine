@@ -179,11 +179,11 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                                string.Empty,
                                string.Empty,
                                string.Empty,
-                               TimeSpan.Zero.ToString()
+                               TimeSpan.Zero.ToString(),
+                               string.Empty
                            ),
                        EducationLevels,
                        DocumentTypes,
-                       string.Empty,
                        SaveStatus.Local
                    );
 
@@ -239,7 +239,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                             EducationDocumentDisplay.QualificationAwardedName,
                             EducationDocumentDisplay.SpecialtyName,
                             EducationDocumentDisplay.ProgramName,
-                            EducationDocumentDisplay.TotalHours
+                            EducationDocumentDisplay.TotalHours,
+                            FileConst.BUCKET_NAME,
+                            EducationDocumentDisplay.FileName
                         )
                 );
 
