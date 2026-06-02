@@ -75,7 +75,8 @@
             string? QualificationAwardedName,
             string? EducationSpecialtyName,
             string? ProgramName,
-            double? TotalHours
+            double? TotalHours,
+            string? EducationDocumentFileKey
         );
 
     public record PersonalDocumentDetailsViewDate
