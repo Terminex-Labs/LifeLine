@@ -67,7 +67,8 @@ SELECT
                 'QualificationAwardedName', ed."QualificationAwardedName",
                 'EducationSpecialtyName', ed."SpecialtyName",
                 'ProgramName', ed."ProgramName",
-                'TotalHours', ed."TotalHours"
+                'TotalHours', ed."TotalHours",
+                'EducationDocumentFileKey', ed."FileKey"
            )), '[]'::jsonb) 
      FROM "EducationDocuments" ed WHERE ed."EmployeeId" = e."Id"
     ) AS "EducationDocuments",
