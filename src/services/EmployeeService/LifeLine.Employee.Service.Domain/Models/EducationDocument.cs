@@ -18,6 +18,7 @@ namespace LifeLine.Employee.Service.Domain.Models
         public SpecialtyName? SpecialtyName { get; private set; } = null!;
         public ProgramEducationName? ProgramName { get; private set; } = null!;
         public Hours? TotalHours { get; private set; } = null!;
+        public FileUrl? FileKey { get; private set; }
 
         public Employee Employee { get; private set; } = null!;
 
@@ -30,7 +31,12 @@ namespace LifeLine.Employee.Service.Domain.Models
                 DocumentTypeId documentTypeId,
                 DocumentNumber documentNumber,
                 DateTime issuedDate,
-                IssuingAuthority organizationName
+                IssuingAuthority organizationName,
+                QualificationAwardedName? qualificationAwardedName,
+                SpecialtyName? specialtyName,
+                ProgramEducationName? programName,
+                Hours? totalHours,
+                FileUrl? fileKey
             ) : base(id)
         {
             EmployeeId = employeeId;
@@ -39,6 +45,11 @@ namespace LifeLine.Employee.Service.Domain.Models
             DocumentNumber = documentNumber;
             IssuedDate = issuedDate;
             OrganizationName = organizationName;
+            QualificationAwardedName = qualificationAwardedName;
+            SpecialtyName = specialtyName;
+            ProgramName = programName;
+            TotalHours = totalHours;
+            FileKey = fileKey;
         }
 
         public static EducationDocument Create
@@ -52,10 +63,10 @@ namespace LifeLine.Employee.Service.Domain.Models
                 string? qualificationAwardedName,
                 string? specialtyName,
                 string? programName,
-                TimeSpan? totalHours
-            )
-        {
-            var educationDocument = new EducationDocument
+                TimeSpan? totalHours,
+                string? bucketName,
+                string? fileName
+            ) => new EducationDocument
                 (
                     EducationDocumentId.New(),
                     EmployeeId.Create(employeeId),
@@ -63,23 +74,13 @@ namespace LifeLine.Employee.Service.Domain.Models
                     DocumentTypeId.Create(documentTypeId),
                     DocumentNumber.Create(documentNumber),
                     issuedDate.ToUniversalTime(),
-                    IssuingAuthority.Create(organizationName)
+                    IssuingAuthority.Create(organizationName),
+                    qualificationAwardedName != null ? QualificationAwardedName.Create(qualificationAwardedName) : null,
+                    specialtyName != null ? SpecialtyName.Create(specialtyName) : null,
+                    programName != null ? ProgramEducationName.Create(programName) : null,
+                    totalHours != null ? Hours.Create(totalHours.Value.TotalHours) : null,
+                    bucketName != null && fileName != null ? FileUrl.Create(bucketName, fileName).Value : null
                 );
-
-            if (!string.IsNullOrWhiteSpace(qualificationAwardedName))
-                educationDocument.QualificationAwardedName = QualificationAwardedName.Create(qualificationAwardedName);
-
-            if (!string.IsNullOrWhiteSpace(specialtyName))
-                educationDocument.SpecialtyName = SpecialtyName.Create(specialtyName);
-
-            if (!string.IsNullOrWhiteSpace(programName))
-                educationDocument.ProgramName = ProgramEducationName.Create(programName);
-
-            if (totalHours.HasValue)
-                educationDocument.TotalHours = Hours.Create(totalHours.Value.TotalHours);
-
-            return educationDocument;
-        }
 
         internal void UpdateEducationLevel(EducationLevelId educationLevelId)
         {
@@ -133,6 +134,12 @@ namespace LifeLine.Employee.Service.Domain.Models
         {
             if (totalHours != TotalHours)
                 TotalHours = totalHours;
+        }
+
+        internal void UpdateFileKey(FileUrl? fileKey)
+        {
+            if (fileKey != FileKey)
+                FileKey = fileKey;
         }
     }
 }
