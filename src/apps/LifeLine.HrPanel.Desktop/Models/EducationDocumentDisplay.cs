@@ -16,7 +16,6 @@ namespace LifeLine.HrPanel.Desktop.Models
                 EducationDocumentResponse model, 
                 IReadOnlyCollection<EducationLevelDisplay> educationLevels,
                 IReadOnlyCollection<DocumentTypeDisplay> documentTypes,
-                string? filePath,
                 SaveStatus saveStatus
             )
         {
@@ -34,7 +33,7 @@ namespace LifeLine.HrPanel.Desktop.Models
             //_totalHours = TimeSpan.Parse(model.TotalHours!);
             TimeSpan.TryParse(model.TotalHours, out var resultTimeSpanParse);
             _totalHours = resultTimeSpanParse;
-            FilePath = filePath;
+            _fileKey = model.FileKey;
             SaveStatus = saveStatus;
 
             SetEducationLevel(_model.EducationLevelId);
@@ -127,10 +126,11 @@ namespace LifeLine.HrPanel.Desktop.Models
         }
         public void SetDocumentType(string id) => DocumentType = _documentTypes.FirstOrDefault(x => x.Id == id)!;
 
-        public string? FilePath
+        private string? _fileKey;
+        public string? FileKey
         {
-            get => field;
-            set => SetProperty(ref field, value);
+            get => _fileKey;
+            set => SetProperty(ref _fileKey, value);
         }
 
         public byte[]? FileBytes { get; set; }
@@ -138,7 +138,7 @@ namespace LifeLine.HrPanel.Desktop.Models
         public string? ContentType { get; set; } = "application/pdf";
 
         [System.ComponentModel.Browsable(false)]
-        public bool HasFileForUpload => FileBytes != null || (!string.IsNullOrWhiteSpace(FilePath) && System.IO.File.Exists(FilePath));
+        //public bool HasFileForUpload => FileBytes != null || (!string.IsNullOrWhiteSpace(FilePath) && System.IO.File.Exists(FilePath));
 
         public EducationDocumentResponse GetUnderLineModel() => _model;
     }

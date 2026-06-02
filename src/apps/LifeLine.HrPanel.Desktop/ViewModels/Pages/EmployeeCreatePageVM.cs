@@ -129,7 +129,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             PersonalPhoto = new(_fileDialogService, _imageCompressionService);
             ContactInformation = new();
             PersonalDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentConversionService, DocumentTypes);
-            EducationDocuments = new(_fileDialogService, _documentConversionService, DocumentTypes, EducationLevels);
+            EducationDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentConversionService, DocumentTypes, EducationLevels);
             WorkPermits = new(_fileDialogService, _documentConversionService, PermitTypes, AdmissionStatuses);
             Specialties = new();
             AssigmentsContracts = new(_fileDialogService, _documentConversionService, _positionReadOnlyApiServiceFactory, Departments, Managers, Statuses, EmployeeTypes);
@@ -404,86 +404,67 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         private async Task<Result> CreateEducationDocuments()
         {
-            var educationDocumentService = _educationDocumentApiServiceFactory.Create(EducationDocuments!.EmployeeId!);
+            if (EducationDocuments == null)
+                return Result.Failure(Error.Validation("Данные отсутствуют!"));
 
-            var dbResult = await educationDocumentService.CreateManyAsync
-                (
-                    new CreateManyEducationDocumentsReqeust
-                        (
-                            [.. EducationDocuments.LocalEducationDocuments.Select
-                                (
-                                    x => new CreateDataEducationDocumentReqeust
-                                        (
-                                            x.EducationLevel.Id,
-                                            x.DocumentType.Id,
-                                            x.DocumentNumber,
-                                            x.IssuedDate.ToString(),
-                                            x.OrganizationName,
-                                            x.QualificationAwardedName,
-                                            x.SpecialtyName,
-                                            x.ProgramName,
-                                            x.TotalHours
-                                        )
-                                )
-                            ]
-                        )
-                );
+            var documentsToSave = EducationDocuments.LocalEducationDocuments
+                .Where(x => x.SaveStatus == SaveStatus.Local).ToList();
 
-            if (dbResult.IsFailure)
-                return Result.Failure(dbResult.Errors);
+            if (documentsToSave.Count == 0)
+                return Result.Failure(Error.Validation("Документы для сохранения отсутствуют!"));
 
+            IReadOnlyList<UploadFileResponse>? uploadResponses = null;
 
-            var filesToUpload = EducationDocuments.LocalEducationDocuments.Where(x => x.HasFileForUpload)
-                .Select(x =>
-                {
-                    if (x.FileBytes != null && !string.IsNullOrWhiteSpace(x.FileName))
-                    {
-                        return new UploadFilesDataRequest
-                            (
-                                FileConst.BUCKET_NAME,
-                                x.DocumentType.Name,
-                                FileConst.BuildEmployeeFolder
-                                    (
-                                        EducationDocuments.EmployeeId!,
-                                        EmployeeFolderType.EducationDocument
-                                    ),
-                                FilePath: null,
-                                FileBytes: x.FileBytes,
-                                FileName: x.FileName,
-                                ContentType: x.ContentType ?? "application/pdf"
-                            );
-                    }
-                    else if (!string.IsNullOrWhiteSpace(x.FilePath) && System.IO.File.Exists(x.FilePath))
-                    {
-
-                        return new UploadFilesDataRequest
-                            (
-                                FileConst.BUCKET_NAME,
-                                x.DocumentType.Name,
-                                FileConst.BuildEmployeeFolder
-                                    (
-                                        EducationDocuments.EmployeeId!,
-                                        EmployeeFolderType.EducationDocument
-                                    ),
-                                FilePath: x.FilePath,
-                                FileBytes: null,
-                                FileName: null,
-                                ContentType: null
-                            );
-                    }
-
-                    return null;
-                })
-                .Where(x => x != null)
-                .ToArray();
-
-            if (filesToUpload.Any())
+            if (documentsToSave.Count > 0)
             {
-                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(filesToUpload.ToList()!));
+                var uploadRequests = documentsToSave
+                    .Select(doc => new UploadFilesDataRequest
+                        (
+                            BucketName: FileConst.BUCKET_NAME,
+                            AdditionalName: doc.DocumentType.Name,
+                            SubFolder: FileConst.BuildEmployeeFolder
+                                (
+                                    EducationDocuments.EmployeeId!,
+                                    EmployeeFolderType.EducationDocument
+                                ),
+                            FilePath: null,
+                            FileBytes: doc.FileBytes,
+                            FileName: doc.FileName,
+                            ContentType: doc.ContentType ?? "application/pdf"
+                        )).ToList();
+
+                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(uploadRequests));
 
                 if (uploadResult.IsFailure)
                     return Result.Failure(uploadResult.Errors);
+
+                uploadResponses = uploadResult.Value;
             }
+
+            var uploadedFileNames = new Queue<string>(uploadResponses?.Select(f => f.FileName) ?? Array.Empty<string>());
+
+            var dbRequests = documentsToSave
+                .Select(doc => new CreateDataEducationDocumentReqeust
+                (
+                    doc.EducationLevel.Id,
+                    doc.DocumentType.Id,
+                    doc.DocumentNumber,
+                    doc.IssuedDate.ToString(),
+                    doc.OrganizationName,
+                    doc.QualificationAwardedName,
+                    doc.SpecialtyName,
+                    doc.ProgramName,
+                    doc.TotalHours,
+                    FileConst.BUCKET_NAME,
+                    uploadedFileNames.TryDequeue(out var fileName) ? fileName : null
+                ));
+
+            var service = _educationDocumentApiServiceFactory.Create(EducationDocuments!.EmployeeId!);
+
+            var dbResult = await service.CreateManyAsync(new CreateManyEducationDocumentsReqeust([.. dbRequests]));
+
+            if (dbResult.IsFailure)
+                return Result.Failure(dbResult.Errors);
 
             return Result.Success();
         }
