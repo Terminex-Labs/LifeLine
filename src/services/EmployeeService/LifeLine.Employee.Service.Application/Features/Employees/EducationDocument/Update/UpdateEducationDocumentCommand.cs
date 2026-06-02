@@ -15,6 +15,8 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.EducationDocu
             string? QualificationAwardedName,
             string? SpecialtyName,
             string? ProgramName,
-            TimeSpan? TotalHours
+            TimeSpan? TotalHours,
+            string? BucketName,
+            string? FileName
         ) : IRequest<Result>;
 }

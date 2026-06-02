@@ -58,7 +58,9 @@ namespace LifeLine.Employee.Service.Api.Controllers.Api
                                     x.QualificationAwardedName,
                                     x.SpecialtyName,
                                     x.ProgramName,
-                                    x.TotalHours
+                                    x.TotalHours,
+                                    x.BucketName,
+                                    x.FileName
                                 )
                         )
                     ]
@@ -88,7 +90,9 @@ namespace LifeLine.Employee.Service.Api.Controllers.Api
                     request.QualificationAwardedName, 
                     request.SpecialtyName, 
                     request.ProgramName, 
-                    request.TotalHours
+                    request.TotalHours, 
+                    request.BucketName, 
+                    request.FileName
                 );
 
             var result = await _mediator.Send(command, cancellationToken);

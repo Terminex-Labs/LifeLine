@@ -42,7 +42,9 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.EducationDocu
                             item.QualificationAwardedName,
                             item.SpecialtyName,
                             item.ProgramName,
-                            item.TotalHours
+                            item.TotalHours,
+                            item.BucketName,
+                            item.FileName
                         );
 
                 await _writeContext.SaveChangesAsync(cancellationToken);
