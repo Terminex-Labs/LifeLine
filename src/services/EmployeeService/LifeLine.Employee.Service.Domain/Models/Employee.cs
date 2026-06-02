@@ -366,7 +366,9 @@ namespace LifeLine.Employee.Service.Domain.Models
                 string? qualificationAwardedName,
                 string? specialtyName,
                 string? programName,
-                TimeSpan? totalHours
+                TimeSpan? totalHours,
+                string? bucketName,
+                string? fileName
             )
         {
             var educationDocument = EducationDocument.Create
@@ -380,7 +382,9 @@ namespace LifeLine.Employee.Service.Domain.Models
                     qualificationAwardedName,
                     specialtyName,
                     programName,
-                    totalHours
+                    totalHours,
+                    bucketName,
+                    fileName
                 );
 
             _educationDocuments.Add(educationDocument);
@@ -483,6 +487,17 @@ namespace LifeLine.Employee.Service.Domain.Models
             GuardException.Against.That(document == null, () => new NotFoundDocumentException($"Документ об образовании не найден!"));
             
             document!.UpdateTotalHours(totalHours != null ? Hours.Create(totalHours.Value.TotalHours) : Hours.Null);
+        }
+
+        public void UpdateFileKeyEducationDocument(Guid id, string? bucketName, string? fileName)
+        {
+            GuardException.Against.That(EducationDocuments.Count == 0, () => new EmptyEducationDocumentException($"Файл Документов об образовании у пользователя: '{Surname} {Name} {Patronymic}' не существует!"));
+
+            var document = this.EducationDocuments.FirstOrDefault(d => d.Id == id);
+
+            GuardException.Against.That(document == null, () => new NotFoundDocumentException($"Персональный документ не найден!"));
+
+            document!.UpdateFileKey(bucketName != null && fileName != null ? FileUrl.Create(bucketName, fileName).Value : null);
         }
 
         public void DeleteEducationDocument(Guid educationDocumentId)
