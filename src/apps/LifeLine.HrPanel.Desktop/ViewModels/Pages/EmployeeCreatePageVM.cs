@@ -18,6 +18,8 @@ using LifeLine.Employee.Service.Client.Services.Specialty;
 using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Enums;
 using LifeLine.HrPanel.Desktop.Models;
+using LifeLine.HrPanel.Desktop.Services.Document.DocumentProcessing;
+using LifeLine.HrPanel.Desktop.Services.Document.DocumentSave;
 using LifeLine.HrPanel.Desktop.Services.FilePreview;
 using LifeLine.HrPanel.Desktop.Services.GeneratePdf;
 using LifeLine.HrPanel.Desktop.ViewModels.Features;
@@ -30,7 +32,6 @@ using Shared.Contracts.Request.EmployeeService.PersonalDocument;
 using Shared.Contracts.Request.EmployeeService.WorkPermit;
 using Shared.Contracts.Request.Files;
 using Shared.Contracts.Response.EmployeeService;
-using Shared.Contracts.Response.Files;
 using Shared.WPF.Commands;
 using Shared.WPF.Enums;
 using Shared.WPF.Extensions;
@@ -67,7 +68,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         private readonly IEmployeeSpecialtyApiServiceFactory _employeeSpecialtyApiServiceFactory;
         private readonly IAssignmentApiServiceFactory _assignmentApiServiceFactory;
 
+        private readonly IDocumentSaveService _documentSaveService;
         private readonly IDocumentConversionService _documentConversionService;
+        private readonly IDocumentProcessingService _documentProcessingService;
         private readonly IImageCompressionService _imageCompressionService;
 
         public EmployeeCreatePageVM
@@ -96,7 +99,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 IEmployeeSpecialtyApiServiceFactory employeeSpecialtyApiServiceFactory,
                 IAssignmentApiServiceFactory assignmentApiServiceFactory,
 
-                IDocumentConversionService documentConversionService, 
+                IDocumentSaveService documentSaveService,
+                IDocumentConversionService documentConversionService,
+                IDocumentProcessingService documentProcessingService,
                 IImageCompressionService imageCompressionService
             )
         {
@@ -122,14 +127,16 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             _employeeSpecialtyApiServiceFactory = employeeSpecialtyApiServiceFactory;
             _assignmentApiServiceFactory = assignmentApiServiceFactory;
 
+            _documentSaveService = documentSaveService;
             _documentConversionService = documentConversionService;
+            _documentProcessingService = documentProcessingService;
             _imageCompressionService = imageCompressionService;
 
             PersonalInfo = new();
             PersonalPhoto = new(_fileDialogService, _imageCompressionService);
             ContactInformation = new();
-            PersonalDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentConversionService, DocumentTypes);
-            EducationDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentConversionService, DocumentTypes, EducationLevels);
+            PersonalDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, DocumentTypes);
+            EducationDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, DocumentTypes, EducationLevels);
             WorkPermits = new(_fileDialogService, _documentConversionService, PermitTypes, AdmissionStatuses);
             Specialties = new();
             AssigmentsContracts = new(_fileDialogService, _documentConversionService, _positionReadOnlyApiServiceFactory, Departments, Managers, Statuses, EmployeeTypes);
@@ -222,6 +229,10 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             set => SetProperty(ref field, value);
         }
 
+        #endregion
+
+        #region ExecuteStepCommand
+
         public RelayCommandAsync<EmployeeCreationSteps> ExecuteStepCommand { get; private set; }
         private async Task Execute_StepCommand(EmployeeCreationSteps value)
         {
@@ -302,10 +313,10 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             var dbResult = await _employeeService.AddPersonalPhoto
                 (
-                    PersonalPhoto.EmployeeId!, 
+                    PersonalPhoto.EmployeeId!,
                     new AddPersonalPhotoRequest
                         (
-                            FileConst.BUCKET_NAME, 
+                            FileConst.BUCKET_NAME,
                             fileResult.Value!.FileName
                         )
                 );
@@ -342,112 +353,86 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         private async Task<Result> CreatePersonalDocuments()
         {
-            if (PersonalDocuments == null)
+            if (PersonalDocuments?.LocalPersonalDocuments == null)
                 return Result.Failure(Error.Validation("Данные отсутствуют!"));
 
             var documentsToSave = PersonalDocuments.LocalPersonalDocuments
                 .Where(x => x.SaveStatus == SaveStatus.Local).ToList();
 
-            if (documentsToSave.Count == 0)
+            if (documentsToSave.Count <= 0)
                 return Result.Failure(Error.Validation("Документы для сохранения отсутствуют!"));
 
-            //var documentsWithFiles = documentsToSave.Where(x => x.HasFileForUpload).ToList();
+            var docsToSave = await _documentSaveService.SaveLocalDocumentsAsync
+            (
+                documentsToSave: documentsToSave,
 
-            IReadOnlyList<UploadFileResponse>? uploadResponses = null;
-
-            if (documentsToSave.Count > 0)
-            {
-                var uploadRequests = documentsToSave
-                    .Select(doc => new UploadFilesDataRequest
-                        (
-                            BucketName: FileConst.BUCKET_NAME,
-                            AdditionalName: doc.DocumentType.Name,
-                            SubFolder: FileConst.BuildEmployeeFolder
-                                (
-                                    PersonalDocuments.EmployeeId!,
-                                    EmployeeFolderType.PersonalDocument
-                                ),
-                            FilePath: null,
-                            FileBytes: doc.FileBytes,
-                            FileName: doc.FileName,
-                            ContentType: doc.ContentType ?? "application/pdf"
-                        )).ToList();
-
-                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(uploadRequests));
-
-                if (uploadResult.IsFailure)
-                    return Result.Failure(uploadResult.Errors);
-
-                uploadResponses = uploadResult.Value;
-            }
-
-            var uploadedFileNames = new Queue<string>(uploadResponses?.Select(f => f.FileName) ?? Array.Empty<string>());
-
-            var dbRequests = documentsToSave
-                .Select(doc => new CreateDataPersonalDocumentRequest
+                uploadRequest: doc => new UploadFilesDataRequest
                 (
-                    doc.DocumentTypeId.ToString(),
+                    BucketName: FileConst.BUCKET_NAME,
+                    AdditionalName: doc.DocumentType.Name,
+                    SubFolder: FileConst.BuildEmployeeFolder
+                    (
+                        PersonalDocuments.EmployeeId!,
+                        EmployeeFolderType.PersonalDocument
+                    ),
+                    FileBytes: doc.FileBytes,
+                    FileName: doc.FileName,
+                    ContentType: doc.ContentType ?? "application/pdf"
+                ),
+
+                dbRequest: (doc, s3FileName) => new CreateDataPersonalDocumentRequest
+                (
+                    doc.DocumentType.Id,
                     doc.DocumentNumber,
                     doc.DocumentSeries,
                     FileConst.BUCKET_NAME,
-                    uploadedFileNames.TryDequeue(out var fileName) ? fileName : null
-                )).ToArray();
+                    s3FileName
+                ),
 
-            var service = _personalDocumentApiServiceFactory.Create(PersonalDocuments.EmployeeId!);
-            var dbResult = await service.CreateManyAsync(new CreateManyPersonalDocumentsRequest([.. dbRequests]));
+                dbSaveAsync: async requests =>
+                    await _personalDocumentApiServiceFactory
+                        .Create(PersonalDocuments.EmployeeId!)
+                        .CreateManyAsync(new CreateManyPersonalDocumentsRequest([.. requests])),
 
-            if (dbResult.IsFailure)
-                return Result.Failure(dbResult.Errors);
+                markAsSavedAction: doc => doc.SetSaveStatus(SaveStatus.DataBase)
+            );
 
             return Result.Success();
         }
 
         private async Task<Result> CreateEducationDocuments()
         {
-            if (EducationDocuments == null)
+            if (EducationDocuments?.LocalEducationDocuments == null)
                 return Result.Failure(Error.Validation("Данные отсутствуют!"));
 
             var documentsToSave = EducationDocuments.LocalEducationDocuments
                 .Where(x => x.SaveStatus == SaveStatus.Local).ToList();
 
-            if (documentsToSave.Count == 0)
+            if (documentsToSave.Count <= 0)
                 return Result.Failure(Error.Validation("Документы для сохранения отсутствуют!"));
 
-            IReadOnlyList<UploadFileResponse>? uploadResponses = null;
+            var docsToSave = await _documentSaveService.SaveLocalDocumentsAsync
+            (
+                documentsToSave: documentsToSave,
 
-            if (documentsToSave.Count > 0)
-            {
-                var uploadRequests = documentsToSave
-                    .Select(doc => new UploadFilesDataRequest
-                        (
-                            BucketName: FileConst.BUCKET_NAME,
-                            AdditionalName: doc.DocumentType.Name,
-                            SubFolder: FileConst.BuildEmployeeFolder
-                                (
-                                    EducationDocuments.EmployeeId!,
-                                    EmployeeFolderType.EducationDocument
-                                ),
-                            FilePath: null,
-                            FileBytes: doc.FileBytes,
-                            FileName: doc.FileName,
-                            ContentType: doc.ContentType ?? "application/pdf"
-                        )).ToList();
+                uploadRequest: doc => new UploadFilesDataRequest
+                (
+                    BucketName: FileConst.BUCKET_NAME,
+                    AdditionalName: doc.DocumentType.Name,
+                    SubFolder: FileConst.BuildEmployeeFolder
+                    (
+                        EducationDocuments.EmployeeId!,
+                        EmployeeFolderType.EducationDocument
+                    ),
+                    FileBytes: doc.FileBytes,
+                    FileName: doc.FileName,
+                    ContentType: doc.ContentType ?? "application/pdf"
+                ),
 
-                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(uploadRequests));
-
-                if (uploadResult.IsFailure)
-                    return Result.Failure(uploadResult.Errors);
-
-                uploadResponses = uploadResult.Value;
-            }
-
-            var uploadedFileNames = new Queue<string>(uploadResponses?.Select(f => f.FileName) ?? Array.Empty<string>());
-
-            var dbRequests = documentsToSave
-                .Select(doc => new CreateDataEducationDocumentReqeust
+                dbRequest: (doc, s3FileName) => new CreateDataEducationDocumentReqeust
                 (
                     doc.EducationLevel.Id,
-                    doc.DocumentType.Id,
+                    doc.EducationLevel.Id,
                     doc.DocumentNumber,
                     doc.IssuedDate.ToString(),
                     doc.OrganizationName,
@@ -456,15 +441,16 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                     doc.ProgramName,
                     doc.TotalHours,
                     FileConst.BUCKET_NAME,
-                    uploadedFileNames.TryDequeue(out var fileName) ? fileName : null
-                ));
+                    s3FileName
+                ),
 
-            var service = _educationDocumentApiServiceFactory.Create(EducationDocuments!.EmployeeId!);
+                dbSaveAsync: async requests =>
+                    await _educationDocumentApiServiceFactory
+                        .Create(EducationDocuments.EmployeeId!)
+                        .CreateManyAsync(new CreateManyEducationDocumentsReqeust([.. requests])),
 
-            var dbResult = await service.CreateManyAsync(new CreateManyEducationDocumentsReqeust([.. dbRequests]));
-
-            if (dbResult.IsFailure)
-                return Result.Failure(dbResult.Errors);
+                markAsSavedAction: doc => doc.SetSaveStatus(SaveStatus.DataBase)
+            );
 
             return Result.Success();
         }
