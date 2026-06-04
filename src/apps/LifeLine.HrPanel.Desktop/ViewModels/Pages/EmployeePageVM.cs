@@ -18,6 +18,10 @@ using LifeLine.Employee.Service.Client.Services.Specialty;
 using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Enums;
 using LifeLine.HrPanel.Desktop.Models;
+using LifeLine.HrPanel.Desktop.Services.Document.DocumentDeletion;
+using LifeLine.HrPanel.Desktop.Services.Document.DocumentProcessing;
+using LifeLine.HrPanel.Desktop.Services.Document.DocumentSave;
+using LifeLine.HrPanel.Desktop.Services.Document.DocumentUpdate;
 using LifeLine.HrPanel.Desktop.Services.FilePreview;
 using LifeLine.HrPanel.Desktop.Services.GenerateImage;
 using LifeLine.HrPanel.Desktop.Services.GeneratePdf;
@@ -31,7 +35,6 @@ using Shared.Contracts.Request.EmployeeService.PersonalDocument;
 using Shared.Contracts.Request.EmployeeService.WorkPermit;
 using Shared.Contracts.Request.Files;
 using Shared.Contracts.Response.EmployeeService;
-using Shared.Contracts.Response.Files;
 using Shared.WPF.Commands;
 using Shared.WPF.Enums;
 using Shared.WPF.Extensions;
@@ -41,7 +44,6 @@ using Shared.WPF.Services.FileDialog;
 using Shared.WPF.Services.NavigationService.Pages;
 using Shared.WPF.ViewModels.Abstract;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Net.Http;
 using System.Windows;
 using Terminex.Common.Results;
@@ -57,9 +59,13 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         private readonly IFileStorageService _fileStorageService;
         private readonly IFilePreviewService _filePreviewService;
         private readonly IGeneratePdfService _generatePdfService;
+        private readonly IDocumentSaveService _documentSaveService;
+        private readonly IDocumentUpdateService _documentUpdateService;
         private readonly IGenerateImageService _generateImageService;
         private readonly IImageCompressionService _imageCompressionService;
         private readonly IDocumentConversionService _documentConversionService;
+        private readonly IDocumentProcessingService _documentProcessingService;
+        private readonly IDocumentDeletionService _documentDeletionService;
 
         private readonly IEmployeeService _employeeService;
         private readonly IGenderReadOnlyService _genderReadOnlyService;
@@ -89,9 +95,13 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 IFileStorageService fileStorageService,
                 IFilePreviewService filePreviewService,
                 IGeneratePdfService generatePdfService,
+                IDocumentSaveService documentSaveService,
+                IDocumentUpdateService documentUpdateService,
                 IGenerateImageService generateImageService,
                 IImageCompressionService imageCompressionService,
                 IDocumentConversionService documentConversionService,
+                IDocumentProcessingService documentProcessingService,
+                IDocumentDeletionService documentDeletionService,
 
                 IEmployeeService employeeService, 
                 IGenderReadOnlyService genderReadOnlyService,
@@ -118,9 +128,13 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             _fileStorageService = fileStorageService;
             _filePreviewService = filePreviewService;
             _generatePdfService = generatePdfService;
+            _documentSaveService = documentSaveService;
+            _documentUpdateService = documentUpdateService;
             _generateImageService = generateImageService;
             _imageCompressionService = imageCompressionService;
             _documentConversionService = documentConversionService;
+            _documentProcessingService = documentProcessingService;
+            _documentDeletionService = documentDeletionService;
 
             _employeeService = employeeService;
             _genderReadOnlyService = genderReadOnlyService;
@@ -143,8 +157,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             PersonalInfo = new();
             PersonalPhoto = new(_fileDialogService, _imageCompressionService);
             ContactInformation = new();
-            PersonalDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentConversionService, DocumentTypes);
-            EducationDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentConversionService, DocumentTypes, EducationLevels);
+            PersonalDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, DocumentTypes);
+            EducationDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, DocumentTypes, EducationLevels);
             WorkPermits = new(_fileDialogService, _documentConversionService, PermitTypes, AdmissionStatuses);
             Specialties = new();
             AssigmentsContracts = new(_fileDialogService, _documentConversionService, _positionReadOnlyApiServiceFactory, Departments, Managers, Statuses, EmployeeTypes);
@@ -166,11 +180,14 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
             CreateWorkPermitCommand = new RelayCommandAsync(Execute_CreateWorkPermitCommand, CanExecute_CreateWorkPermitCommand);
             UpdateWorkPermitCommand = new RelayCommandAsync(Execute_UpdateWorkPermitCommand, CanExecute_UpdateWorkPermitCommand);
+            DeleteWorkPermitCommand = new RelayCommandAsync<WorkPermitDisplay>(Execute_DeleteWorkPermitCommand, CanExecute_DeleteWorkPermitCommand);
 
             CreateEmployeeSpecialtyCommand = new RelayCommandAsync(Execute_CreateEmployeeSpecialtyCommand, CanExecute_CreateEmployeeSpecialtyCommand);
+            DeleteEmployeeSpecialtyCommand = new RelayCommandAsync<SpecialtyDisplay>(Execute_DeleteEmployeeSpecialtyCommand, CanExecute_DeleteEmployeeSpecialtyCommand);
 
             CreateAssignmentContractCommand = new RelayCommandAsync(Execute_CreateAssignmentContractCommand, CanExecute_CreateAssignmentContractCommand);
             UpdateAssignmentContractCommand = new RelayCommandAsync(Execute_UpdateAssignmentContractCommand, CanExecute_UpdateAssignmentContractCommand);
+            DeleteAssignmentContractCommand = new RelayCommandAsync<AssignmentContractDisplay>(Execute_DeleteAssignmentContractCommand, CanExecute_DeleteAssignmentContractCommand);
 
             OpenEditContactInformationEmployeeCommand = new RelayCommand(Execute_OpenEditContactInformationEmployeeCommand, CanExecute_OpenEditContactInformationEmployeeCommand);
             OpenEditPersonalDocumentCommand = new RelayCommand<PersonalDocumentDisplay>(Execute_OpenEditPersonalDocumentCommand, CanExecute_OpenEditPersonalDocumentCommand);
@@ -180,10 +197,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             OpenEditAssignmentCommand = new RelayCommand<AssignmentContractDisplay>(Execute_OpenEditAssignmentCommand, CanExecute_OpenEditAssignmentCommand);
 
             CloseModalCommand = new RelayCommand(Execute_CloseModalCommand);
-
-            DeleteEmployeeSpecialtyCommand = new RelayCommandAsync<SpecialtyDisplay>(Execute_DeleteEmployeeSpecialtyCommand, CanExecute_DeleteEmployeeSpecialtyCommand);
-            DeleteWorkPermitCommand = new RelayCommandAsync<WorkPermitDisplay>(Execute_DeleteWorkPermitCommand, CanExecute_DeleteWorkPermitCommand);
-            DeleteAssignmentContractCommand = new RelayCommandAsync<AssignmentContractDisplay>(Execute_DeleteAssignmentContractCommand, CanExecute_DeleteAssignmentContractCommand);
 
             SoftDeleteEmployeeCommand = new RelayCommandAsync<EmployeeHrDisplay>(Execute_SoftDeleteEmployeeCommand);
         }
@@ -1141,7 +1154,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync CreatePersonalDocumentCommand { get; private set; }
         private async Task Execute_CreatePersonalDocumentCommand()
         {
-            if (PersonalDocuments == null)
+            if (PersonalDocuments?.LocalPersonalDocuments == null)
             {
                 MessageBox.Show("Данные отсутствуют!");
                 return;
@@ -1150,66 +1163,55 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             var documentsToSave = PersonalDocuments.LocalPersonalDocuments
                 .Where(x => x.SaveStatus == SaveStatus.Local).ToList();
 
-            if (documentsToSave.Count == 0)
-                return;
-
-            IReadOnlyList<UploadFileResponse>? uploadResponses = null;
-
-            if (documentsToSave.Count > 0)
+            if (documentsToSave.Count <= 0)
             {
-                var uploadRequests = documentsToSave
-                    .Select(doc => new UploadFilesDataRequest
-                        (
-                            BucketName: FileConst.BUCKET_NAME,
-                            AdditionalName: doc.DocumentType.Name,
-                            SubFolder: FileConst.BuildEmployeeFolder
-                                (
-                                    PersonalDocuments.EmployeeId!, 
-                                    EmployeeFolderType.PersonalDocument
-                                ),
-                            //FilePath: null,
-                            FileBytes: doc.FileBytes,
-                            FileName: doc.FileName,
-                            ContentType: doc.ContentType ?? "application/pdf"
-                        )).ToList();
-
-                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(uploadRequests));
-
-                if (uploadResult.IsFailure)
-                {
-                    MessageBox.Show(uploadResult.StringMessage);
-                    return;
-                }
-
-                uploadResponses = uploadResult.Value;
+                MessageBox.Show("Документы для сохранения отсутствуют!");
+                return;
             }
 
-            var uploadedFileNames = new Queue<string>(uploadResponses?.Select(f => f.FileName) ?? Array.Empty<string>());
+            var result = await _documentSaveService.SaveLocalDocumentsAsync
+            (
+                documentsToSave: documentsToSave,
 
-            var dbRequests = documentsToSave
-                .Select(doc => new CreateDataPersonalDocumentRequest
+                uploadRequest: doc => new UploadFilesDataRequest
+                (
+                    BucketName: FileConst.BUCKET_NAME,
+                    AdditionalName: doc.DocumentType.Name,
+                    SubFolder: FileConst.BuildEmployeeFolder
+                    (
+                        PersonalDocuments.EmployeeId!,
+                        EmployeeFolderType.PersonalDocument
+                    ),
+                    FileBytes: doc.FileBytes,
+                    FileName: doc.FileName,
+                    ContentType: doc.ContentType ?? "application/pdf"
+                ),
+
+                dbRequest: (doc, s3FileName) => new CreateDataPersonalDocumentRequest
                 (
                     doc.DocumentTypeId.ToString(),
                     doc.DocumentNumber,
                     doc.DocumentSeries,
                     FileConst.BUCKET_NAME,
-                    uploadedFileNames.TryDequeue(out var fileName) ? fileName : null
-                )).ToArray();
+                    s3FileName
+                ),
 
-            var service = _personalDocumentApiServiceFactory.Create(PersonalDocuments.EmployeeId!);
-            var dbResult = await service.CreateManyAsync(new CreateManyPersonalDocumentsRequest([.. dbRequests]));
+                dbSaveAsync: async requests => await _personalDocumentApiServiceFactory.Create(PersonalDocuments.EmployeeId!)
+                    .CreateManyAsync(new CreateManyPersonalDocumentsRequest([.. requests])),
 
-            if (dbResult.IsFailure)
+                markAsSavedAction: doc =>
+                {
+                    doc.SetSaveStatus(SaveStatus.DataBase);
+                    PersonalDocuments.PersonalDocumentsView.Refresh();
+                    PersonalDocuments.ClearProperty();
+                }
+            );
+
+            if (result.IsFailure)
             {
-                MessageBox.Show(dbResult.StringMessage);
+                MessageBox.Show(result.StringMessage);
                 return;
             }
-
-            foreach (var doc in documentsToSave)
-                doc.SetSaveStatus(SaveStatus.DataBase);
-
-            PersonalDocuments.PersonalDocumentsView.Refresh();
-            PersonalDocuments.ClearProperty();
         }
         private bool CanExecute_CreatePersonalDocumentCommand() => true;
 
@@ -1224,85 +1226,62 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 return;
             }
 
-            var fileBytes = new List<byte[]>();
-            var fileNames = new List<string>();
+            var selectedDoc = PersonalDocuments.SelectedLocalPersonalDocument;
 
-            foreach (var path in PersonalDocuments.PendingFilePaths.Select(x => x.FilePath))
-            {
-                if (System.IO.File.Exists(path))
-                {
-                    fileBytes.Add(await System.IO.File.ReadAllBytesAsync(path));
-                    fileNames.Add(Path.GetFileName(path));
-                }
-            }
+            if (selectedDoc == null)
+                return;
 
-            if (!fileBytes.Any())
+            var processResult = await _documentProcessingService.ProcessFilesToPdfAsync
+            (
+                PersonalDocuments.PendingFilePaths,
+                PersonalDocuments.DocumentType.Name,
+                PersonalDocuments.EmployeeId!,
+                PersonalDocuments.Number
+            );
+
+            if (processResult.IsFailure)
             {
-                MessageBox.Show("Не удалось прочитать выбранные файлы", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(processResult.StringMessage);
                 return;
             }
 
-            var pdfBytes = await _documentConversionService.ConvertImagesToPdfAsync
+            var (pdfBytes, fileName) = processResult.Value;
+
+            var result = await _documentUpdateService.UpdateDocumentFileAsync
+            (
+                newFileBytes: pdfBytes,
+                newFileName: fileName,
+                oldFileKey: selectedDoc.FileKey,
+
+                uploadRequest: (bytes, fName) => new UploadFileRequest
                 (
+                    FileConst.BUCKET_NAME,
                     PersonalDocuments.DocumentType.Name,
-                    PersonalDocuments.EmployeeId!,
-                    fileBytes,
-                    fileNames
-                );
+                    FileConst.BuildEmployeeFolder
+                    (
+                        PersonalDocuments.EmployeeId!,
+                        EmployeeFolderType.PersonalDocument
+                    ),
+                    FileBytes: bytes,
+                    FileName: fName
+                ),
 
-            var fileExtension = $"{PersonalDocuments.Number}.pdf"; ;
-
-            var s3Result = await _fileStorageService.UploadFileAsync
+                dbRequest: s3FileName => new UpdatePersonalDocumentRequest
                 (
-                    new UploadFileRequest
-                        (
-                            FileConst.BUCKET_NAME,
-                            PersonalDocuments.DocumentType.Name,
-                            FileConst.BuildEmployeeFolder
-                                (
-                                    PersonalDocuments.EmployeeId!,
-                                    EmployeeFolderType.PersonalDocument
-                                ),
-                            //FilePath: null,
-                            FileBytes: pdfBytes,
-                            FileName: fileExtension
-                        )
-                );
+                    PersonalDocuments.DocumentType.Id,
+                    PersonalDocuments.Number,
+                    PersonalDocuments.Series,
+                    FileConst.BUCKET_NAME,
+                    s3FileName
+                ),
 
-            if (s3Result.IsFailure && s3Result.Value == null)
+                dbUpdateAsync: async request => await _personalDocumentApiServiceFactory.Create(PersonalDocuments.EmployeeId!)
+                    .UpdatePersonalDocumentAsync(selectedDoc.PersonalDocumentId, request)
+            );
+
+            if (result.IsFailure)
             {
-                MessageBox.Show(s3Result.StringMessage);
-                return;
-            }
-
-            var personalDocumentService = _personalDocumentApiServiceFactory.Create(PersonalDocuments!.EmployeeId!);
-
-            var dbResult = await personalDocumentService.UpdatePersonalDocumentAsync
-                (
-                    PersonalDocuments.SelectedLocalPersonalDocument.PersonalDocumentId,
-                    new UpdatePersonalDocumentRequest
-                        (
-                            PersonalDocuments.DocumentType.Id,
-                            PersonalDocuments.Number,
-                            PersonalDocuments.Series,
-                            FileConst.BUCKET_NAME,
-                            s3Result.Value!.FileName
-                        )
-                );
-
-            if (dbResult.IsFailure)
-            {
-                MessageBox.Show($"{dbResult.Errors}");
-                return;
-            }
-
-            var (bucketName, fileName) = S3UrlParser.Parse(PersonalDocuments.SelectedLocalPersonalDocument.FileKey!);
-            var deleteFileResult = await _fileStorageService.DeleteFileAsync(new DeleteFileRequest(bucketName!, fileName!));
-
-            if (deleteFileResult.IsFailure)
-            {
-                MessageBox.Show($"{deleteFileResult.Errors}");
+                MessageBox.Show(result.StringMessage);
                 return;
             }
 
@@ -1315,40 +1294,30 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync<PersonalDocumentDisplay> DeletePersonalDocumentCommand { get; private set; }
         private async Task Execute_DeletePersonalDocumentCommand(PersonalDocumentDisplay display)
         {
-            List<Error> errors = [];
+            if (display == null)
+                return;
 
-            Func<Task> func = display.SaveStatus switch
+            var result = await _documentDeletionService.DeleteDocumentAsync
+            (
+                document: display,
+                collection: PersonalDocuments!.LocalPersonalDocuments,
+
+                getId: doc => doc.PersonalDocumentId,
+                getFileKey: doc => doc.FileKey,
+                dbDeleteAsync: async id => await _personalDocumentApiServiceFactory.Create(PersonalDocuments.EmployeeId!)
+                    .DeletePersonalDocumentAsync(id),
+                refreshView: () =>
+                {
+                    PersonalDocuments.PersonalDocumentsView.Refresh();
+                    PersonalDocuments.ClearProperty();
+                }
+            );
+
+            if (result.IsFailure)
             {
-                SaveStatus.Local => async () =>
-                {
-                    PersonalDocuments.LocalPersonalDocuments.Remove(display);
-                    PersonalDocuments.PersonalDocumentsView.Refresh();
-                    PersonalDocuments.ClearProperty();
-                },
-                SaveStatus.DataBase => async () =>
-                {
-                    var result = await _personalDocumentApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeletePersonalDocumentAsync(display.PersonalDocumentId);
-
-                    if (!result.IsSuccess)
-                        errors.AddRange(result.Errors);
-
-                    var (bucketName, fileName) = S3UrlParser.Parse(PersonalDocuments.SelectedLocalPersonalDocument.FileKey!);
-                    var deleteFileResult = await _fileStorageService.DeleteFileAsync(new DeleteFileRequest(bucketName!, fileName!));
-
-                    if (deleteFileResult.IsFailure)
-                        errors.AddRange(deleteFileResult.Errors);
-
-                    PersonalDocuments.LocalPersonalDocuments.Remove(display);
-                    PersonalDocuments.PersonalDocumentsView.Refresh();
-                    PersonalDocuments.ClearProperty();
-                },
-
-                _ => async () => Result.Success()
-            };
-
-            await func();
-
-            errors.ShowError();
+                MessageBox.Show(result.StringMessage);
+                return;
+            }
         }
         private bool CanExecute_DeletePersonalDocumentCommand(PersonalDocumentDisplay display) => SelectedEmployee != null;
         #endregion
@@ -1368,44 +1337,28 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             var documentsToSave = EducationDocuments.LocalEducationDocuments
                 .Where(x => x.SaveStatus == SaveStatus.Local).ToList();
 
-            if (documentsToSave.Count == 0)
+            if (documentsToSave.Count <= 0)
                 return;
 
-            IReadOnlyList<UploadFileResponse>? uploadResponses = null;
+            var result = await _documentSaveService.SaveLocalDocumentsAsync
+            (
+                documentsToSave: documentsToSave,
 
-            if (documentsToSave.Count > 0)
-            {
-                var uploadRequests = documentsToSave
-                    .Select(doc => new UploadFilesDataRequest
-                        (
-                            BucketName: FileConst.BUCKET_NAME,
-                            AdditionalName: doc.DocumentType.Name,
-                            SubFolder: FileConst.BuildEmployeeFolder
-                                (
-                                    EducationDocuments.EmployeeId!,
-                                    EmployeeFolderType.EducationDocument
-                                ),
-                            //FilePath: null,
-                            FileBytes: doc.FileBytes,
-                            FileName: doc.FileName,
-                            ContentType: doc.ContentType ?? "application/pdf"
-                        )).ToList();
+                uploadRequest: doc => new UploadFilesDataRequest
+                (
+                    BucketName: FileConst.BUCKET_NAME,
+                    AdditionalName: doc.DocumentType.Name,
+                    SubFolder: FileConst.BuildEmployeeFolder
+                    (
+                        EducationDocuments.EmployeeId!,
+                        EmployeeFolderType.EducationDocument
+                    ),
+                    FileBytes: doc.FileBytes,
+                    FileName: doc.FileName,
+                    ContentType: doc.ContentType ?? "application/pdf"
+                ),
 
-                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(uploadRequests));
-
-                if (uploadResult.IsFailure)
-                {
-                    MessageBox.Show(uploadResult.StringMessage);
-                    return;
-                }
-
-                uploadResponses = uploadResult.Value;
-            }
-
-            var uploadedFileNames = new Queue<string>(uploadResponses?.Select(f => f.FileName) ?? Array.Empty<string>());
-
-            var dbRequest = documentsToSave
-                .Select(doc => new CreateDataEducationDocumentReqeust
+                dbRequest: (doc, s3FileName) => new CreateDataEducationDocumentReqeust
                 (
                     doc.EducationLevel.Id,
                     doc.DocumentType.Id,
@@ -1417,24 +1370,25 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                     doc.ProgramName,
                     doc.TotalHours,
                     FileConst.BUCKET_NAME,
-                    uploadedFileNames.TryDequeue(out var fileName) ? fileName : null
-                ));
+                    s3FileName
+                ),
 
-            var service = _educationDocumentApiServiceFactory.Create(PersonalDocuments!.EmployeeId!);
+                dbSaveAsync: async requests => await _educationDocumentApiServiceFactory.Create(EducationDocuments.EmployeeId!)
+                    .CreateManyAsync(new CreateManyEducationDocumentsReqeust([.. requests])),
 
-            var dbResult = await service.CreateManyAsync(new CreateManyEducationDocumentsReqeust([.. dbRequest]));
+                markAsSavedAction: doc =>
+                {
+                    doc.SetSaveStatus(SaveStatus.DataBase);
+                    EducationDocuments.EducationDocumentsView.Refresh();
+                    EducationDocuments.ClearProperty();
+                }
+            );
 
-            if (dbResult.IsFailure)
+            if (result.IsFailure)
             {
-                MessageBox.Show($"{dbResult.StringMessage}");
+                MessageBox.Show($"{result.StringMessage}");
                 return;
             }
-
-            foreach (var item in EducationDocuments.LocalEducationDocuments)
-                item.SetSaveStatus(SaveStatus.DataBase);
-
-            EducationDocuments.EducationDocumentsView.Refresh();
-            EducationDocuments.ClearProperty();
         }
         private bool CanExecute_CreateEducationdocumentCommand() => true;
 
@@ -1449,38 +1403,34 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                 return;
             }
 
-            var fileBytes = new List<byte[]>();
-            var fileNames = new List<string>();
+            var selectedDoc = EducationDocuments.SelectedLocalEducationDocument;
 
-            foreach (var path in EducationDocuments.PendingFilePaths.Select(x => x.FilePath))
-            {
-                if (System.IO.File.Exists(path))
-                {
-                    fileBytes.Add(await System.IO.File.ReadAllBytesAsync(path));
-                    fileNames.Add(Path.GetFileName(path));
-                }
-            }
+            if (selectedDoc == null)
+                return;
 
-            if (!fileBytes.Any())
+            var processResult = await _documentProcessingService.ProcessFilesToPdfAsync
+                (
+                    EducationDocuments.PendingFilePaths,
+                    EducationDocuments.DocumentType.Name,
+                    EducationDocuments.EmployeeId!,
+                    EducationDocuments.DocumentNumber
+                );
+
+            if (processResult.IsFailure)
             {
-                MessageBox.Show("Не удалось прочитать выбранные файлы", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(processResult.StringMessage);
                 return;
             }
 
-            var pdfBytes = await _documentConversionService.ConvertImagesToPdfAsync
-                (
-                    EducationDocuments.DocumentType.Name,
-                    EducationDocuments.EmployeeId!,
-                    fileBytes,
-                    fileNames
-                );
+            var (pdfBytes, fileName) = processResult.Value;
 
-            var fileExtension = $"{EducationDocuments.DocumentNumber}.pdf";
-
-            var s3Result = await _fileStorageService.UploadFileAsync
+            var result = await _documentUpdateService.UpdateDocumentFileAsync
                 (
-                    new UploadFileRequest
+                    newFileBytes: pdfBytes,
+                    newFileName: fileName,
+                    oldFileKey: selectedDoc.FileKey,
+
+                    uploadRequest: (bytes, fName) => new UploadFileRequest
                         (
                             FileConst.BUCKET_NAME,
                             EducationDocuments.DocumentType.Name,
@@ -1489,24 +1439,11 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                                     EducationDocuments.EmployeeId!,
                                     EmployeeFolderType.EducationDocument
                                 ),
-                            //FilePath: null,
-                            FileBytes: pdfBytes,
-                            FileName: fileExtension
-                        )
-                );
+                            FileBytes: bytes,
+                            FileName: fName
+                        ),
 
-            if (s3Result.IsFailure && s3Result.Value == null)
-            {
-                MessageBox.Show(s3Result.StringMessage);
-                return;
-            }
-
-            var educationDocumentService = _educationDocumentApiServiceFactory.Create(EducationDocuments!.EmployeeId!);
-
-            var dbResult = await educationDocumentService.UpdateEducationDocumentAsync
-                (
-                    Guid.Parse(EducationDocuments.SelectedLocalEducationDocument.EducationDocumentId),
-                    new UpdateEducationDocumentRequest
+                    dbRequest: s3FileName => new UpdateEducationDocumentRequest
                         (
                             EducationDocuments.EducationLevel!.Id,
                             EducationDocuments.DocumentType!.Id,
@@ -1518,22 +1455,16 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                             EducationDocuments.ProgramName,
                             EducationDocuments.TotalHours,
                             FileConst.BUCKET_NAME,
-                            s3Result.Value!.FileName
-                        )
+                            s3FileName
+                        ),
+
+                    dbUpdateAsync: async request => await _educationDocumentApiServiceFactory.Create(EducationDocuments.EmployeeId!)
+                        .UpdateEducationDocumentAsync(Guid.Parse(selectedDoc.EducationDocumentId), request)
                 );
 
-            if (dbResult.IsFailure)
+            if (result.IsFailure)
             {
-                MessageBox.Show($"{dbResult.Errors}");
-                return;
-            }
-
-            var (bucketName, fileName) = S3UrlParser.Parse(EducationDocuments.SelectedLocalEducationDocument.FileKey!);
-            var deleteFileResult = await _fileStorageService.DeleteFileAsync(new DeleteFileRequest(bucketName!, fileName!));
-
-            if (deleteFileResult.IsFailure)
-            {
-                MessageBox.Show($"{deleteFileResult.Errors}");
+                MessageBox.Show(result.StringMessage);
                 return;
             }
 
@@ -1545,40 +1476,29 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync<EducationDocumentDisplay> DeleteEducationDocumentCommand { get; private set; }
         private async Task Execute_DeleteEducationDocumentCommand(EducationDocumentDisplay display)
         {
-            List<Error> errors = [];
+            if (display == null)
+                return;
 
-            Func<Task> func = display.SaveStatus switch
+            var result = await _documentDeletionService.DeleteDocumentAsync
+            (
+                document: display,
+                collection: EducationDocuments!.LocalEducationDocuments,
+                getId: doc => Guid.Parse(doc.EducationDocumentId),
+                getFileKey: doc => doc.FileKey,
+                dbDeleteAsync: async id => await _educationDocumentApiServiceFactory.Create(EducationDocuments.EmployeeId!)
+                    .DeleteEducationDocumentAsync(id),
+                refreshView: () =>
+                {
+                    EducationDocuments.EducationDocumentsView.Refresh();
+                    EducationDocuments.ClearProperty();
+                }
+            );
+
+            if (result.IsFailure)
             {
-                SaveStatus.Local => async () =>
-                {
-                    EducationDocuments.LocalEducationDocuments.Remove(display);
-                    EducationDocuments.EducationDocumentsView.Refresh();
-                    EducationDocuments.ClearProperty();
-                },
-                SaveStatus.DataBase => async () =>
-                {
-                    var result = await _educationDocumentApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeleteEducationDocumentAsync(Guid.Parse(display.EducationDocumentId));
-
-                    if (!result.IsSuccess)
-                        errors.AddRange(result.Errors);
-
-                    var (bucketName, fileName) = S3UrlParser.Parse(EducationDocuments.SelectedLocalEducationDocument.FileKey!);
-                    var deleteFileResult = await _fileStorageService.DeleteFileAsync(new DeleteFileRequest(bucketName!, fileName!));
-
-                    if (deleteFileResult.IsFailure)
-                        errors.AddRange(deleteFileResult.Errors);
-
-                    EducationDocuments.LocalEducationDocuments.Remove(display);
-                    EducationDocuments.EducationDocumentsView.Refresh();
-                    EducationDocuments.ClearProperty();
-                },
-
-                _ => async () => Result.Success()
-            };
-
-            await func();
-
-            errors.ShowError();
+                MessageBox.Show(result.StringMessage);
+                return;
+            }
         }
         private bool CanExecute_DeleteEducationDocumentCommand(EducationDocumentDisplay display) => SelectedEmployee != null;
         
