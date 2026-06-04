@@ -1,5 +1,6 @@
 ﻿using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Models;
+using LifeLine.HrPanel.Desktop.Services.Document.DocumentProcessing;
 using LifeLine.HrPanel.Desktop.Services.FilePreview;
 using Shared.Contracts.Request.Files;
 using Shared.Contracts.Response.EmployeeService;
@@ -7,12 +8,10 @@ using Shared.WPF.Commands;
 using Shared.WPF.Constants;
 using Shared.WPF.Enums;
 using Shared.WPF.Helpers;
-using Shared.WPF.Services.Conversion;
 using Shared.WPF.Services.FileDialog;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Windows;
 using System.Windows.Data;
 
@@ -23,7 +22,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         private readonly IFileDialogService _fileDialogService;
         private readonly IFileStorageService _fileStorageService;
         private readonly IFilePreviewService _filePreviewService;
-        private readonly IDocumentConversionService _documentConversionService;
+        private readonly IDocumentProcessingService _documentProcessingService;
 
         private readonly IReadOnlyCollection<DocumentTypeDisplay> _documentTypes;
         private readonly IReadOnlyCollection<EducationLevelDisplay> _educationLevels;
@@ -33,7 +32,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                 IFileDialogService fileDialogService,
                 IFileStorageService fileStorageService,
                 IFilePreviewService filePreviewService,
-                IDocumentConversionService documentConversionService,
+                IDocumentProcessingService documentProcessingService,
 
                 IReadOnlyCollection<DocumentTypeDisplay> documentTypes,
                 IReadOnlyCollection<EducationLevelDisplay> educationLevels
@@ -42,7 +41,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             _fileDialogService = fileDialogService;
             _fileStorageService = fileStorageService;
             _filePreviewService = filePreviewService;
-            _documentConversionService = documentConversionService;
+            _documentProcessingService = documentProcessingService;
 
             _documentTypes = documentTypes;
             _educationLevels = educationLevels;
@@ -285,76 +284,53 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                 return;
             }
 
-            try
-            {
-                var fileBytes = new List<byte[]>();
-                var fileNames = new List<string>();
-                var contentType = new List<string>();
+            var processResult = await _documentProcessingService.ProcessFilesToPdfAsync
+                (
+                    PendingFilePaths,
+                    DocumentType.Name,
+                    EmployeeId!,
+                    DocumentNumber
+                );
 
-                foreach (var pendingFile in PendingFilePaths)
-                {
-                    if (System.IO.File.Exists(pendingFile.FilePath))
+            if (processResult.IsFailure)
+            {
+                MessageBox.Show(processResult.StringMessage);
+                return;
+            }
+
+            var (pdfBytes, fileName) = processResult.Value;
+
+            LocalEducationDocuments.Add
+                (
+                    new EducationDocumentDisplay
+                        (
+                            new EducationDocumentResponse
+                                (
+                                    string.Empty,
+                                    EmployeeId!,
+                                    EducationLevel.Id,
+                                    DocumentType.Id,
+                                    DocumentNumber,
+                                    IssuedDate.ToString(),
+                                    OrganizationName,
+                                    QualificationAwardedName,
+                                    SpecialtyName,
+                                    ProgramName,
+                                    TotalHours.ToString(),
+                                    null
+                                ),
+                            _educationLevels,
+                            _documentTypes,
+                            SaveStatus.Local
+                        )
                     {
-                        fileBytes.Add(await System.IO.File.ReadAllBytesAsync(pendingFile.FilePath));
-                        fileNames.Add(Path.GetFileName(pendingFile.FilePath));
-                        contentType.Add(Path.GetExtension(pendingFile.ContentType));
+                        FileBytes = pdfBytes,
+                        FileName = fileName,
+                        ContentType = "application/pdf"
                     }
-                }
+                );
 
-                if (!fileBytes.Any())
-                {
-                    MessageBox.Show("Не удалось прочитать выбранные файлы", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                var pdfBytes = await _documentConversionService.ConvertImagesToPdfAsync
-                    (
-                        DocumentType.Name,
-                        EmployeeId!,
-                        fileBytes,
-                        fileNames
-                    );
-
-                var fileName = $"{DocumentNumber}.pdf";
-
-                LocalEducationDocuments.Add
-                    (
-                        new EducationDocumentDisplay
-                            (
-                                new EducationDocumentResponse
-                                    (
-                                        string.Empty,
-                                        EmployeeId!,
-                                        EducationLevel.Id,
-                                        DocumentType.Id,
-                                        DocumentNumber,
-                                        IssuedDate.ToString(),
-                                        OrganizationName,
-                                        QualificationAwardedName,
-                                        SpecialtyName,
-                                        ProgramName,
-                                        TotalHours.ToString(),
-                                        null
-                                    ),
-                                _educationLevels, 
-                                _documentTypes,
-                                SaveStatus.Local
-                            )
-                        {
-                            FileBytes = pdfBytes,
-                            FileName = fileName,
-                            ContentType = "application/pdf"
-                        }
-                    );
-
-                ClearProperty();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при обработке файла: {ex.Message}", "Ошибка конвертации",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            ClearProperty();
         }
         private bool CanExecute_AddEducationDocumentCommand()
             => EducationLevel != null && DocumentType != null &&
