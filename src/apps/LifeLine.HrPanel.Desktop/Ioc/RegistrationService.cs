@@ -16,6 +16,10 @@ using LifeLine.Employee.Service.Client.Services.EmployeeType;
 using LifeLine.Employee.Service.Client.Services.Gender;
 using LifeLine.Employee.Service.Client.Services.Specialty;
 using LifeLine.File.Service.Client;
+using LifeLine.HrPanel.Desktop.Services.Document.DocumentDeletion;
+using LifeLine.HrPanel.Desktop.Services.Document.DocumentProcessing;
+using LifeLine.HrPanel.Desktop.Services.Document.DocumentSave;
+using LifeLine.HrPanel.Desktop.Services.Document.DocumentUpdate;
 using LifeLine.HrPanel.Desktop.Services.FilePreview;
 using LifeLine.HrPanel.Desktop.Services.GenerateImage;
 using LifeLine.HrPanel.Desktop.Services.GeneratePdf;
@@ -42,11 +46,16 @@ namespace LifeLine.HrPanel.Desktop.Ioc
 
             services.AddSingleton<IFileDialogService, FileDialogService>();
             services.AddSingleton<IFilePreviewService, FilePreviewService>();
-            services.AddSingleton<IGenerateImageService, GenerateImageService>();
             services.AddSingleton<IGeneratePdfService, GeneratePdfService>();
-
+            services.AddSingleton<IGenerateImageService, GenerateImageService>();
             services.AddSingleton<IImageCompressionService, ImageCompressionService>();
+
+
+            services.AddSingleton<IDocumentSaveService, DocumentSaveService>();
+            services.AddSingleton<IDocumentUpdateService, DocumentUpdateService>();
+            services.AddSingleton<IDocumentDeletionService, DocumentDeletionService>();
             services.AddSingleton<IDocumentConversionService, DocumentConversionService>();
+            services.AddSingleton<IDocumentProcessingService, DocumentProcessingService>();
 
             services.AddSingleton<IAuthorizationService>(sp =>
             {
