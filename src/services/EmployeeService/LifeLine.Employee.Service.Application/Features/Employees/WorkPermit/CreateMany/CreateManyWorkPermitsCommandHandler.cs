@@ -42,6 +42,8 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.WorkPermit.Cr
                             item.IssuingAuthority,
                             item.IssueDate,
                             item.ExpiryDate,
+                            item.BucketName,
+                            item.FileName,
                             item.PermitTypeId,
                             item.AdmissionStatusId
                         );

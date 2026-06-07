@@ -35,6 +35,7 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.WorkPermit.Up
                 employee.UpdateIssuingAuthorityWP(request.Id, request.IssuingAuthority);
                 employee.UpdateIssueDateWP(request.Id, request.IssueDate);
                 employee.UpdateExpiryDateWP(request.Id, request.ExpiryDate);
+                employee.UpdateFileKeyWorkPermit(request.Id, request.BucketName, request.FileName);
                 employee.UpdatePermitTypeIdWP(request.Id, request.PermitTypeId);
                 employee.UpdateAdmissionStatusIdWP(request.Id, request.AdmissionStatusId);
 
