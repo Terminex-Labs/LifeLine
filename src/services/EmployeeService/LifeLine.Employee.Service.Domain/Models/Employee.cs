@@ -209,6 +209,8 @@ namespace LifeLine.Employee.Service.Domain.Models
                 string issuingAuthority,
                 DateTime issueDate,
                 DateTime expiryDate,
+                string? bucketName,
+                string? fileName,
                 Guid permitTypeId,
                 Guid admissionStatusId
             )
@@ -224,6 +226,8 @@ namespace LifeLine.Employee.Service.Domain.Models
                     issuingAuthority,
                     issueDate,
                     expiryDate,
+                    bucketName,
+                    fileName,
                     permitTypeId,
                     admissionStatusId
                 );
@@ -317,6 +321,17 @@ namespace LifeLine.Employee.Service.Domain.Models
             GuardException.Against.That(workPermit == null, () => new NotFoundDocumentException($"Разрешение на работу не найдено!"));
 
             workPermit!.UpdateExpiryDate(expiryDate);
+        }
+
+        public void UpdateFileKeyWorkPermit(Guid id, string? bucketName, string? fileName)
+        {
+            GuardException.Against.That(WorkPermits.Count == 0, () => new EmptyWorkPermitException($"Файл: Разрешения на работу у пользователя: '{Surname} {Name} {Patronymic}' не существует!"));
+
+            var document = this.WorkPermits.FirstOrDefault(d => d.Id == id);
+
+            GuardException.Against.That(document == null, () => new NotFoundDocumentException($"Разрешение на работу не найдено!"));
+
+            document!.UpdateFileKey(bucketName != null && fileName != null ? FileUrl.Create(bucketName, fileName).Value : null);
         }
 
         public void UpdatePermitTypeIdWP(Guid id, Guid permitTypeId)
