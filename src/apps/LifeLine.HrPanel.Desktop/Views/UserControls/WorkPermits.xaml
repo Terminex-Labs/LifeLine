@@ -94,7 +94,7 @@
         <Border Grid.Column="0" Background="{StaticResource App.SecondColor}" CornerRadius="6" Margin="0 0 5 0">
             <Border Margin="5" Background="{StaticResource App.MainColor}" CornerRadius="6" BorderBrush="#386FD6" BorderThickness="2">
                 <DataGrid ItemsSource="{Binding WorkPermits.WorkPermitsView}" 
-                          SelectedItem="{Binding WorkPermits.SelectedWorkPermit}"
+                          SelectedItem="{Binding WorkPermits.SelectedLocalWorkPermit}"
                           AutoGenerateColumns="False" 
                           CanUserAddRows="False"
                           HorizontalContentAlignment="Stretch" 
@@ -117,7 +117,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding PermitType.Name}" 
-                                                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -127,7 +127,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding AdmissionStatus.Name}" 
-                                                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -137,17 +137,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding WorkPermitName}" 
-                                                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-
-                        <!-- Файл -->
-                        <DataGridTemplateColumn Header="Файл" Width="*">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding FilePath}" 
-                                                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -197,232 +187,232 @@
             </Border>
         </Border>
 
-        <ScrollViewer Grid.Column="1" Margin="5 0 0 0" VerticalScrollBarVisibility="Auto">
-            <Border Background="{StaticResource App.SecondColor}" CornerRadius="6">
-                <Grid Margin="5">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="50"/>
-                        <RowDefinition Height="50"/>
-                    </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0">
-                        <!-- Тип документа / Статус -->
-                        <ComboBox Grid.Column="0" 
-                                  ItemsSource="{Binding PermitTypes}" 
-                                  SelectedItem="{Binding WorkPermits.PermitType}"
-                                  DisplayMemberPath="Name" 
-                                  Margin="0 0 0 5"/>
+        <Border Grid.Column="1" Background="{StaticResource App.SecondColor}" CornerRadius="6">
+            <Grid Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="50"/>
+                    <RowDefinition Height="50"/>
+                </Grid.RowDefinitions>
 
-                        <ComboBox Grid.Column="1" 
-                                  ItemsSource="{Binding AdmissionStatuses}" 
-                                  SelectedItem="{Binding WorkPermits.AdmissionStatus}"
-                                  DisplayMemberPath="Name" 
-                                  Margin="0 5 0 10"/>
+                <StackPanel Grid.Row="0">
+                    <!-- Тип документа / Статус -->
+                    <ComboBox Grid.Column="0" 
+                              ItemsSource="{Binding PermitTypes}" 
+                              SelectedItem="{Binding WorkPermits.PermitType}"
+                              DisplayMemberPath="Name" 
+                              Margin="0 0 0 5"/>
 
-                        <!-- Наименование документа / Наименование специальности -->
-                        <cc:PlaceHolderTextBox Grid.Column="0" PlaceHolder="Наименование документа*" Margin="0 0 0 5"
-                                               Text="{Binding WorkPermits.WorkPermitName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBox.PlaceHolder}"/>
+                    <ComboBox Grid.Column="1" 
+                              ItemsSource="{Binding AdmissionStatuses}" 
+                              SelectedItem="{Binding WorkPermits.AdmissionStatus}"
+                              DisplayMemberPath="Name" 
+                              Margin="0 5 0 10"/>
 
-                        <cc:PlaceHolderTextBox Grid.Column="1" PlaceHolder="Наименование специальности*" Margin="0 0 0 5"
-                                               Text="{Binding WorkPermits.SpecialtyName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBox.PlaceHolder}"/>
+                    <!-- Наименование документа / Наименование специальности -->
+                    <cc:PlaceHolderTextBox Grid.Column="0" PlaceHolder="Наименование документа*" Margin="0 0 0 5"
+                                           Text="{Binding WorkPermits.WorkPermitName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBox.PlaceHolder}"/>
 
-                        <!-- Серия / Номер -->
-                        <cc:PlaceHolderTextBox Grid.Column="0" PlaceHolder="Серия" Margin="0 0 0 5"
-                                               Text="{Binding WorkPermits.DocumentSeries, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBox.PlaceHolder}"/>
+                    <cc:PlaceHolderTextBox Grid.Column="1" PlaceHolder="Наименование специальности*" Margin="0 0 0 5"
+                                           Text="{Binding WorkPermits.SpecialtyName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBox.PlaceHolder}"/>
 
-                        <cc:PlaceHolderTextBox Grid.Column="1" PlaceHolder="Номер*" Margin="0 0 0 5"
-                                               Text="{Binding WorkPermits.WorkPermitNumber, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBox.PlaceHolder}"/>
+                    <!-- Серия / Номер -->
+                    <cc:PlaceHolderTextBox Grid.Column="0" PlaceHolder="Серия" Margin="0 0 0 5"
+                                           Text="{Binding WorkPermits.DocumentSeries, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBox.PlaceHolder}"/>
 
-                        <!-- Номер протокола / Орган выдающий документы -->
-                        <cc:PlaceHolderTextBox Grid.Column="0" PlaceHolder="Номер протокола" Margin="0 0 0 5"
-                                               Text="{Binding WorkPermits.ProtocolNumber}" Style="{StaticResource TextBox.PlaceHolder}"/>
+                    <cc:PlaceHolderTextBox Grid.Column="1" PlaceHolder="Номер*" Margin="0 0 0 5"
+                                           Text="{Binding WorkPermits.WorkPermitNumber, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBox.PlaceHolder}"/>
 
-                        <cc:PlaceHolderTextBox Grid.Column="1" PlaceHolder="Орган выдающий документы*" Margin="0 0 0 10"
-                                               Text="{Binding WorkPermits.IssuingAuthority}" Style="{StaticResource TextBox.PlaceHolder}"/>
+                    <!-- Номер протокола / Орган выдающий документы -->
+                    <cc:PlaceHolderTextBox Grid.Column="0" PlaceHolder="Номер протокола" Margin="0 0 0 5"
+                                           Text="{Binding WorkPermits.ProtocolNumber}" Style="{StaticResource TextBox.PlaceHolder}"/>
 
-                        <!-- Дата выдачи / Дата окончания -->
-                        <DatePicker Grid.Column="0" SelectedDate="{Binding WorkPermits.IssueDate, UpdateSourceTrigger=PropertyChanged}" Margin="0 0 0 10"/>
+                    <cc:PlaceHolderTextBox Grid.Column="1" PlaceHolder="Орган выдающий документы*" Margin="0 0 0 10"
+                                           Text="{Binding WorkPermits.IssuingAuthority}" Style="{StaticResource TextBox.PlaceHolder}"/>
 
-                        <DatePicker Grid.Column="1" SelectedDate="{Binding WorkPermits.ExpiryDate, UpdateSourceTrigger=PropertyChanged}" Margin="0 0 0 10"/>
+                    <!-- Дата выдачи / Дата окончания -->
+                    <DatePicker Grid.Column="0" SelectedDate="{Binding WorkPermits.IssueDate, UpdateSourceTrigger=PropertyChanged}" Margin="0 0 0 10"/>
 
-                        <!-- Файл -->
-                        <StackPanel Grid.Row="1" Margin="0 10 0 0">
-                            <Button Content="Выбрать скан" 
-                                    Width="170" Height="40" 
-                                    HorizontalAlignment="Right"
-                                    Command="{Binding WorkPermits.SelectMultipleCommand}" 
-                                    Style="{StaticResource App.Button}"/>
+                    <DatePicker Grid.Column="1" SelectedDate="{Binding WorkPermits.ExpiryDate, UpdateSourceTrigger=PropertyChanged}" Margin="0 0 0 10"/>
 
-                            <ListView x:Name="ItemsListView"
-                                      ItemsSource="{Binding WorkPermits.PendingFilePaths}"
-                                      SelectedItem="{Binding WorkPermits.SelectedWorkPermit}"
-                                      d:ItemsSource="{d:SampleData ItemCount=3}"
-                                      Background="#1E1E1E"
-                                      BorderThickness="0"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                      ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                      ScrollViewer.CanContentScroll="True"
-                                      VirtualizingPanel.IsVirtualizing="True"
-                                      VirtualizingPanel.VirtualizationMode="Recycling">
-                                <!-- Горизонтальная виртуализация -->
+                    <!-- Файл -->
+                    <StackPanel Grid.Row="1" Margin="0 10 0 0">
+                        <Button Content="Выбрать скан" 
+                                Width="170" Height="40" 
+                                HorizontalAlignment="Right"
+                                Command="{Binding WorkPermits.SelectMultipleCommand}" 
+                                Style="{StaticResource App.Button}"/>
 
-                                <!-- Панель для горизонтального расположения -->
-                                <ListView.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel Orientation="Horizontal" 
-                                                    IsItemsHost="True"
-                                                    Margin="0"/>
-                                        <!-- Отступы вокруг всех items -->
-                                    </ItemsPanelTemplate>
-                                </ListView.ItemsPanel>
+                        <ListView x:Name="ItemsListView"
+                                  ItemsSource="{Binding WorkPermits.PendingFilePaths}"
+                                  SelectedItem="{Binding WorkPermits.SelectedWorkPermit}"
+                                  d:ItemsSource="{d:SampleData ItemCount=3}"
+                                  Background="#1E1E1E"
+                                  BorderThickness="0"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                  ScrollViewer.CanContentScroll="True"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling">
+                            <!-- Горизонтальная виртуализация -->
 
-                                <!-- Стиль ListViewItem -->
-                                <ListView.ItemContainerStyle>
-                                    <Style TargetType="ListViewItem">
-                                        <Setter Property="Margin" Value="0"/>
-                                        <!-- Отступ между items -->
-                                        <Setter Property="Padding" Value="0"/>
-                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                            <!-- Панель для горизонтального расположения -->
+                            <ListView.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" 
+                                                IsItemsHost="True"
+                                                Margin="0"/>
+                                    <!-- Отступы вокруг всех items -->
+                                </ItemsPanelTemplate>
+                            </ListView.ItemsPanel>
 
-                                        <!-- Убираем стандартное выделение -->
-                                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                            <!-- Стиль ListViewItem -->
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="Margin" Value="0"/>
+                                    <!-- Отступ между items -->
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="VerticalContentAlignment" Value="Stretch"/>
 
-                                        <Style.Triggers>
-                                            <!-- Выделение при наведении -->
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Opacity" Value="0.9"/>
-                                                <Setter Property="Background" Value="Magenta"/>
-                                                <Setter Property="BorderBrush" Value="Magenta"/>
-                                            </Trigger>
+                                    <!-- Убираем стандартное выделение -->
+                                    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
 
-                                            <!-- Выделение выбранного элемента -->
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="#386FD6"/>
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ListView.ItemContainerStyle>
+                                    <Style.Triggers>
+                                        <!-- Выделение при наведении -->
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Opacity" Value="0.9"/>
+                                            <Setter Property="Background" Value="Magenta"/>
+                                            <Setter Property="BorderBrush" Value="Magenta"/>
+                                        </Trigger>
 
-                                <!-- Шаблон элемента (ваш Item) -->
-                                <ListView.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="{StaticResource App.SecondColor}" CornerRadius="6">
-                                            <!-- Ширина каждого item -->
-                                            <Border BorderBrush="#386FD6" 
-                                                    Background="{StaticResource App.MainColor}" 
-                                                    BorderThickness="2" 
-                                                    CornerRadius="10" 
-                                                    HorizontalAlignment="Left" 
-                                                    VerticalAlignment="Top" 
-                                                    Margin="5">
-                                                <StackPanel>
-                                                    <Border BorderThickness="0 0 0 2" BorderBrush="#386FD6">
-                                                        <StackPanel>
-                                                            <!-- 👇 Превью: если есть Thumbnail — показываем, иначе заглушка -->
-                                                            <Grid Width="150" Height="150" Margin="5">
-                                                                <Image Source="{Binding Thumbnail}" Stretch="Uniform" 
-                                                                       d:Source="C:\Users\texno\Documents\Lightshot\Screenshot_4.png"
-                                                                       Visibility="{Binding Thumbnail, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                        <!-- Выделение выбранного элемента -->
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#386FD6"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ListView.ItemContainerStyle>
 
-                                                                <!-- Заглушка если нет превью -->
-                                                                <TextBlock Text="{Binding FileExtension}"
-                                                                           FontSize="24"
-                                                                           FontWeight="Bold"
-                                                                           Foreground="#AAAAAA"
-                                                                           HorizontalAlignment="Center"
-                                                                           VerticalAlignment="Center"
-                                                                           Visibility="{Binding Thumbnail, Converter={StaticResource NotNullToVisibilityConverter}}"/>
-                                                            </Grid>
+                            <!-- Шаблон элемента (ваш Item) -->
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource App.SecondColor}" CornerRadius="6">
+                                        <!-- Ширина каждого item -->
+                                        <Border BorderBrush="#386FD6" 
+                                                Background="{StaticResource App.MainColor}" 
+                                                BorderThickness="2" 
+                                                CornerRadius="10" 
+                                                HorizontalAlignment="Left" 
+                                                VerticalAlignment="Top" 
+                                                Margin="5">
+                                            <StackPanel>
+                                                <Border BorderThickness="0 0 0 2" BorderBrush="#386FD6">
+                                                    <StackPanel>
+                                                        <!-- 👇 Превью: если есть Thumbnail — показываем, иначе заглушка -->
+                                                        <Grid Width="150" Height="150" Margin="5">
+                                                            <Image Source="{Binding Thumbnail}" Stretch="Uniform" 
+                                                                    d:Source="C:\Users\texno\Documents\Lightshot\Screenshot_4.png"
+                                                                    Visibility="{Binding Thumbnail, Converter={StaticResource NullToVisibilityConverter}}"/>
 
-                                                            <!-- 👇 Индекс и имя файла -->
-                                                            <TextBlock Text="{Binding Index, StringFormat='#{0}'}"
-                                                                       HorizontalAlignment="Center" 
-                                                                       FontSize="18" 
-                                                                       Margin="0 0 0 2"
-                                                                       Foreground="White"
-                                                                       FontWeight="Bold"/>
-                                                            <TextBlock Text="{Binding FileName}"
-                                                                       HorizontalAlignment="Center" 
-                                                                       FontSize="12" 
-                                                                       Margin="0 0 0 2"
-                                                                       Foreground="#AAAAAA"
-                                                                       TextTrimming="CharacterEllipsis"
-                                                                       MaxWidth="140"/>
-                                                            <TextBlock Text="{Binding FileSizeFormatted}"
-                                                                       HorizontalAlignment="Center" 
-                                                                       FontSize="10" 
-                                                                       Margin="0 0 0 5"
-                                                                       Foreground="#666666"/>
-                                                        </StackPanel>
-                                                    </Border>
+                                                            <!-- Заглушка если нет превью -->
+                                                            <TextBlock Text="{Binding FileExtension}"
+                                                                        FontSize="24"
+                                                                        FontWeight="Bold"
+                                                                        Foreground="#AAAAAA"
+                                                                        HorizontalAlignment="Center"
+                                                                        VerticalAlignment="Center"
+                                                                        Visibility="{Binding Thumbnail, Converter={StaticResource NotNullToVisibilityConverter}}"/>
+                                                        </Grid>
 
-                                                    <!-- Кнопки управления -->
-                                                    <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0 2 0 2">
-                                                        <Button Width="25" 
-                                                                Background="Transparent" 
-                                                                BorderThickness="0"
-                                                                Command="{Binding Avatar.SelectCommandAsync}">
-                                                            <Control Template="{StaticResource AddIcon}"/>
-                                                            <Button.ToolTip>
-                                                                <TextBlock Text="Добавить аватарку"/>
-                                                            </Button.ToolTip>
-                                                        </Button>
-                                                        <Button Width="25" 
-                                                                Background="Transparent" 
-                                                                BorderThickness="0"
-                                                                Margin="15 0 15 0"
-                                                                Command="{Binding Avatar.SelectCommandAsync}">
-                                                            <Control Template="{StaticResource Magnifier}"/>
-                                                        </Button>
-                                                        <Button Width="25" 
-                                                                Background="Transparent" 
-                                                                BorderThickness="0"
-                                                                Foreground="#F06870"
-                                                                Command="{Binding DataContext.WorkPermits.RemovePendingFileCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
-                                                                CommandParameter="{Binding }">
-                                                            <Control Template="{StaticResource Trash}"/>
-                                                            <Button.ToolTip>
-                                                                <TextBlock Text="Удалить"/>
-                                                            </Button.ToolTip>
-                                                        </Button>
-                                                    </WrapPanel>
-                                                </StackPanel>
-                                            </Border>
+                                                        <!-- 👇 Индекс и имя файла -->
+                                                        <TextBlock Text="{Binding Index, StringFormat='#{0}'}"
+                                                                    HorizontalAlignment="Center" 
+                                                                    FontSize="18" 
+                                                                    Margin="0 0 0 2"
+                                                                    Foreground="White"
+                                                                    FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding FileName}"
+                                                                    HorizontalAlignment="Center" 
+                                                                    FontSize="12" 
+                                                                    Margin="0 0 0 2"
+                                                                    Foreground="#AAAAAA"
+                                                                    TextTrimming="CharacterEllipsis"
+                                                                    MaxWidth="140"/>
+                                                        <TextBlock Text="{Binding FileSizeFormatted}"
+                                                                    HorizontalAlignment="Center" 
+                                                                    FontSize="10" 
+                                                                    Margin="0 0 0 5"
+                                                                    Foreground="#666666"/>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <!-- Кнопки управления -->
+                                                <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0 2 0 2">
+                                                    <Button Width="25" 
+                                                            Background="Transparent" 
+                                                            BorderThickness="0"
+                                                            Command="{Binding Avatar.SelectCommandAsync}">
+                                                        <Control Template="{StaticResource AddIcon}"/>
+                                                        <Button.ToolTip>
+                                                            <TextBlock Text="Добавить аватарку"/>
+                                                        </Button.ToolTip>
+                                                    </Button>
+                                                    <Button Width="25" 
+                                                            Background="Transparent" 
+                                                            BorderThickness="0"
+                                                            Margin="15 0 15 0"
+                                                            Command="{Binding DataContext.WorkPermits.PreviewCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                            CommandParameter="{Binding }">
+                                                        <Control Template="{StaticResource Magnifier}"/>
+                                                    </Button>
+                                                    <Button Width="25" 
+                                                            Background="Transparent" 
+                                                            BorderThickness="0"
+                                                            Foreground="#F06870"
+                                                            Command="{Binding DataContext.WorkPermits.RemovePendingFileCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                            CommandParameter="{Binding }">
+                                                        <Control Template="{StaticResource Trash}"/>
+                                                        <Button.ToolTip>
+                                                            <TextBlock Text="Удалить"/>
+                                                        </Button.ToolTip>
+                                                    </Button>
+                                                </WrapPanel>
+                                            </StackPanel>
                                         </Border>
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
-                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
                     </StackPanel>
+                </StackPanel>
 
-                    <Button Grid.Row="1" Content="Добавить локально" Height="40"
-                            HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                            Command="{Binding WorkPermits.AddWorkPermitCommandAsync}"
-                            Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+                <Button Grid.Row="1" Content="Добавить локально" Height="40"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                        Command="{Binding WorkPermits.AddWorkPermitCommandAsync}"
+                        Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
 
-                    <Button Grid.Row="2" Content="Продолжить" Height="40"
-                            HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                            Command="{Binding ExecuteStepCommand}" 
-                            CommandParameter="{x:Static enum:EmployeeCreationSteps.Specialties}"
-                            Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.CreateStep}, UpdateSourceTrigger=PropertyChanged}"
-                            Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+                <Button Grid.Row="2" Content="Продолжить" Height="40"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                        Command="{Binding ExecuteStepCommand}" 
+                        CommandParameter="{x:Static enum:EmployeeCreationSteps.Specialties}"
+                        Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.CreateStep}, UpdateSourceTrigger=PropertyChanged}"
+                        Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
 
-                    <Button Grid.Row="2" Content="Сохранить" Height="40"
-                            HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                            Command="{Binding CreateWorkPermitCommand}"
-                            Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Create}, UpdateSourceTrigger=PropertyChanged}"
-                            Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+                <Button Grid.Row="2" Content="Сохранить" Height="40"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                        Command="{Binding CreateWorkPermitCommand}"
+                        Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Create}, UpdateSourceTrigger=PropertyChanged}"
+                        Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
 
-                    <Button Grid.Row="2" Content="Обновить" Height="40"
-                            HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                            Command="{Binding UpdateWorkPermitCommand}"
-                            Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Update}, UpdateSourceTrigger=PropertyChanged}"
-                            Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
-                </Grid>
-            </Border>
-        </ScrollViewer>
+                <Button Grid.Row="2" Content="Обновить" Height="40"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                        Command="{Binding UpdateWorkPermitCommand}"
+                        Visibility="{Binding Action, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource TypeActionConverter}, ConverterParameter={x:Static enum:TypeAction.Update}, UpdateSourceTrigger=PropertyChanged}"
+                        Style="{StaticResource App.Button}" Margin="0 10 0 0"/>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>
