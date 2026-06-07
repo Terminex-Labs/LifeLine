@@ -155,11 +155,11 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                             DateTime.Now,
                             DateTime.Now,
                             string.Empty,
+                            string.Empty,
                             string.Empty
                         ),
                     PermitTypes,
                     AdmissionStatuses,
-                    string.Empty,
                     SaveStatus.Local
                 );
 
@@ -215,6 +215,8 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                             WorkPermitDisplay.IssuingAuthority,
                             WorkPermitDisplay.IssueDate,
                             WorkPermitDisplay.ExpiryDate,
+                            FileConst.BUCKET_NAME,
+                            WorkPermitDisplay.FileName,
                             WorkPermitDisplay.PermitType.Id,
                             WorkPermitDisplay.AdmissionStatus.Id
                         )

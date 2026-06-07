@@ -14,8 +14,9 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.WorkPermit.Up
             string SpecialtyName, 
             string IssuingAuthority, 
             DateTime IssueDate, 
-            DateTime ExpiryDate, 
-            /*FileInput? FileKey,*/
+            DateTime ExpiryDate,
+            string? BucketName,
+            string? FileName,
             Guid PermitTypeId, 
             Guid AdmissionStatusId
         ) : IRequest<Result>;

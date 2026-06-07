@@ -18,7 +18,7 @@ namespace LifeLine.Employee.Service.Domain.Models
         public IssuingAuthority IssuingAuthority { get; private set; } = null!;
         public DateTime IssueDate { get; private set; }
         public DateTime ExpiryDate { get; private set; }
-        public ImageKey? FileKey { get; private set; }
+        public FileUrl? FileKey { get; private set; }
         public PermitTypeId PermitTypeId { get; private set; }
         public AdmissionStatusId AdmissionStatusId { get; private set; }
 
@@ -30,22 +30,28 @@ namespace LifeLine.Employee.Service.Domain.Models
                 WorkPermitId id, 
                 EmployeeId employeeId, 
                 ProgramEducationName workPermitName, 
+                DocumentSeries? documentSeries,
                 DocumentNumber workPermitNumber, 
+                ProtocolNumber? protocolNumber,
                 SpecialtyName specialtyName, 
                 IssuingAuthority issuingAuthority, 
                 DateTime issueDate, 
                 DateTime expiryDate,
+                FileUrl? fileKey,
                 PermitTypeId permitTypeId,
                 AdmissionStatusId admissionStatusId
             ) : base(id)
         {
             EmployeeId = employeeId;
             WorkPermitName = workPermitName;
+            DocumentSeries = documentSeries;
             WorkPermitNumber = workPermitNumber;
+            ProtocolNumber = protocolNumber;
             SpecialtyName = specialtyName;
             IssuingAuthority = issuingAuthority;
             IssueDate = issueDate;
             ExpiryDate = expiryDate;
+            FileKey = fileKey;
             PermitTypeId = permitTypeId;
             AdmissionStatusId = admissionStatusId;
         }
@@ -64,31 +70,26 @@ namespace LifeLine.Employee.Service.Domain.Models
                 string issuingAuthority,
                 DateTime issueDate,
                 DateTime expiryDate,
+                string? bucketName,
+                string? fileName,
                 Guid permitTypeId,
                 Guid admissionStatusId
-            )
-        {
-            var workPermit = new WorkPermit
+            ) 
+            => new WorkPermit
                 (
                     WorkPermitId.New(),
                     EmployeeId.Create(employeeId),
                     ProgramEducationName.Create(workPermitName),
+                    documentSeries != null ? DocumentSeries.Create(documentSeries) : null,
                     DocumentNumber.Create(workPermitNumber),
+                    protocolNumber != null ? ProtocolNumber.Create(protocolNumber) : null,
                     SpecialtyName.Create(specialtyName),
                     IssuingAuthority.Create(issuingAuthority),
                     issueDate.ToUniversalTime(), expiryDate.ToUniversalTime(),
+                    bucketName != null && fileName != null ? FileUrl.Create(bucketName, fileName).Value : null,
                     PermitTypeId.Create(permitTypeId),
                     AdmissionStatusId.Create(admissionStatusId)
                 );
-
-            if (!string.IsNullOrWhiteSpace(documentSeries))
-                workPermit.DocumentSeries = DocumentSeries.Create(documentSeries);
-
-            if (!string.IsNullOrWhiteSpace(protocolNumber))
-                workPermit.ProtocolNumber = ProtocolNumber.Create(protocolNumber);
-
-            return workPermit;
-        }
 
         internal void UpdateName(ProgramEducationName programEducationName)
         {
@@ -136,6 +137,12 @@ namespace LifeLine.Employee.Service.Domain.Models
         {
             if (expiryDate.ToUniversalTime() != ExpiryDate)
                 ExpiryDate = expiryDate.ToUniversalTime();
+        }
+
+        internal void UpdateFileKey(FileUrl? fileUrl)
+        {
+            if (fileUrl != FileKey)
+                FileKey = fileUrl;
         }
 
         internal void UpdatePermitType(PermitTypeId permitTypeId)

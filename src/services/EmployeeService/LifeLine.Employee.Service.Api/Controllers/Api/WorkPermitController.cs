@@ -59,6 +59,8 @@ namespace LifeLine.Employee.Service.Api.Controllers.Api
                                     x.IssuingAuthority,
                                     DateTime.Parse(x.IssueDate),
                                     DateTime.Parse(x.ExpiryDate),
+                                    x.BucketName,
+                                    x.FileName,
                                     Guid.Parse(x.PermitTypeId),
                                     Guid.Parse(x.AdmissionStatusId)
                                 )
@@ -90,6 +92,8 @@ namespace LifeLine.Employee.Service.Api.Controllers.Api
                     request.IssuingAuthority,
                     request.IssueDate,
                     request.ExpiryDate,
+                    request.BucketName,
+                    request.FileName,
                     Guid.Parse(request.PermitTypeId),
                     Guid.Parse(request.AdmissionStatusId)
                 );

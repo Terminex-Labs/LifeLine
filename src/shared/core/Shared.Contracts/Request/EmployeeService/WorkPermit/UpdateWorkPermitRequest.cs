@@ -10,7 +10,8 @@
             string IssuingAuthority,
             DateTime IssueDate,
             DateTime ExpiryDate,
-            /*FileInput? FileKey,*/
+            string? BucketName,
+            string? FileName,
             string PermitTypeId,
             string AdmissionStatusId
         );

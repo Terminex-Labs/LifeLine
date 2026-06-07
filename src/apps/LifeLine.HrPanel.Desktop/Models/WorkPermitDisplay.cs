@@ -16,7 +16,6 @@ namespace LifeLine.HrPanel.Desktop.Models
                 WorkPermitResponse model, 
                 IReadOnlyCollection<PermitTypeDisplay> permitTypes, 
                 IReadOnlyCollection<AdmissionStatusDisplay> admissionStatuses,
-                string? filePath,
                 SaveStatus saveStatus
             )
         {
@@ -32,7 +31,7 @@ namespace LifeLine.HrPanel.Desktop.Models
             _issuingAuthority = model.IssuingAuthority;
             _issueDate = model.IssueDate;
             _expiryDate = model.ExpiryDate;
-            FilePath = filePath;
+            _fileKey = model.FileKey;
             SaveStatus = saveStatus;
 
             SetPermiteType(_model.PermitTypeId);
@@ -115,6 +114,13 @@ namespace LifeLine.HrPanel.Desktop.Models
             set => SetProperty(ref _expiryDate, value);
         }
 
+        private string? _fileKey;
+        public string? FileKey
+        {
+            get => _fileKey;
+            set => SetProperty(ref _fileKey, value);
+        }
+
         //SelectedPermitType
         private PermitTypeDisplay _permitType = null!;
         public PermitTypeDisplay PermitType
@@ -133,18 +139,9 @@ namespace LifeLine.HrPanel.Desktop.Models
         }
         public void SetAdmissionStatus(string id) => AdmissionStatus = _admissionStatuses.FirstOrDefault(x => x.Id.ToString() == id)!;
 
-        public string? FilePath
-        {
-            get => field;
-            set => SetProperty(ref field, value);
-        }
-
         public byte[]? FileBytes { get; set; }
         public string? FileName { get; set; }
         public string? ContentType { get; set; } = "application/pdf";
-
-        [System.ComponentModel.Browsable(false)]
-        public bool HasFileForUpload => FileBytes != null || (!string.IsNullOrWhiteSpace(FilePath) && System.IO.File.Exists(FilePath));
 
         public WorkPermitResponse GetUnderLineModel() => _model;
     }
