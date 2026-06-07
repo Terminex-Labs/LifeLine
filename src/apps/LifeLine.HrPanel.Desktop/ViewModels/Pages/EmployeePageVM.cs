@@ -159,7 +159,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             ContactInformation = new();
             PersonalDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, DocumentTypes);
             EducationDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, DocumentTypes, EducationLevels);
-            WorkPermits = new(_fileDialogService, _documentConversionService, PermitTypes, AdmissionStatuses);
+            WorkPermits = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, PermitTypes, AdmissionStatuses);
             Specialties = new();
             AssigmentsContracts = new(_fileDialogService, _documentConversionService, _positionReadOnlyApiServiceFactory, Departments, Managers, Statuses, EmployeeTypes);
 
@@ -579,10 +579,11 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                                             x.IssuingAuthority,
                                             x.WorkPermitIssueDate,
                                             x.WorkPermitExpiryDate,
+                                            x.WorkPermitFileKey,
                                             x.PermitTypeId.ToString(),
                                             x.AdmissionStatusId.ToString()
                                         ),
-                                    PermitTypes, AdmissionStatuses, string.Empty, SaveStatus.DataBase
+                                    PermitTypes, AdmissionStatuses, SaveStatus.DataBase
                                 )
                         ).ToList()
                 );
@@ -1510,74 +1511,68 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync CreateWorkPermitCommand { get; private set; }
         private async Task Execute_CreateWorkPermitCommand()
         {
-            var workPermitService = _workPermitApiServiceFactory.Create(WorkPermits!.EmployeeId!);
-
-            var dbResult = await workPermitService.CreateManyAsync
-                (
-                    new CreateManyWorkPermitsRequest
-                        (
-                            [.. WorkPermits.LocalWorkPermits.Where(x => x.SaveStatus == SaveStatus.Local)
-                                .Select
-                                (
-                                    x => new CreateManyDataWorkPermitsRequest
-                                        (
-                                            x.WorkPermitName,
-                                            x.DocumentSeries,
-                                            x.WorkPermitNumber,
-                                            x.ProtocolNumber,
-                                            x.SpecialtyName,
-                                            x.IssuingAuthority,
-                                            x.IssueDate.ToString(),
-                                            x.ExpiryDate.ToString(),
-                                            x.PermitType.Id,
-                                            x.AdmissionStatus.Id
-                                        )
-                                )
-                            ]
-                        )
-                );
-
-            if (dbResult.IsFailure)
+            if (WorkPermits == null)
             {
-                MessageBox.Show($"{dbResult.Errors}");
+                MessageBox.Show("Данные отсутствуют!");
                 return;
             }
 
-            var filesToUpload = WorkPermits.LocalWorkPermits.Where(x => x.HasFileForUpload)
-                .Select
+            var documentsToSave = WorkPermits.LocalWorkPermits
+                .Where(x => x.SaveStatus == SaveStatus.Local).ToList();
+
+            if (documentsToSave.Count <= 0)
+                return;
+
+            var result = await _documentSaveService.SaveLocalDocumentsAsync
+                (
+                    documentsToSave: documentsToSave,
+
+                    uploadRequest: doc => new UploadFilesDataRequest
                     (
-                        x => new UploadFilesDataRequest
-                            (
-                                BucketName: FileConst.BUCKET_NAME,
-                                AdditionalName: x.PermitType.Name,
-                                SubFolder: FileConst.BuildEmployeeFolder
-                                    (
-                                        EducationDocuments.EmployeeId!,
-                                        EmployeeFolderType.WorkPermit
-                                    ),
-                                FilePath: null,
-                                FileBytes: x.FileBytes,
-                                FileName: x.FileName,
-                                ContentType: x.ContentType ?? "application/pdf"
-                            )
-                    );
+                        BucketName: FileConst.BUCKET_NAME,
+                        AdditionalName: doc.PermitType.Name,
+                        SubFolder: FileConst.BuildEmployeeFolder
+                        (
+                            WorkPermits.EmployeeId!,
+                            EmployeeFolderType.WorkPermit
+                        ),
+                        FileBytes: doc.FileBytes,
+                        FileName: doc.FileName,
+                        ContentType: doc.ContentType ?? "application/pdf"
+                    ),
 
-            if (filesToUpload.Any())
+                    dbRequest: (doc, s3FileName) => new CreateManyDataWorkPermitsRequest
+                    (
+                        doc.WorkPermitName,
+                        doc.DocumentSeries,
+                        doc.WorkPermitNumber,
+                        doc.ProtocolNumber,
+                        doc.SpecialtyName,
+                        doc.IssuingAuthority,
+                        doc.IssueDate.ToString(),
+                        doc.ExpiryDate.ToString(),
+                        FileConst.BUCKET_NAME,
+                        s3FileName,
+                        doc.PermitType.Id,
+                        doc.AdmissionStatus.Id
+                    ),
+
+                    dbSaveAsync: async requests => await _workPermitApiServiceFactory.Create(WorkPermits.EmployeeId!)
+                        .CreateManyAsync(new CreateManyWorkPermitsRequest([.. requests])),
+
+                    markAsSavedAction: doc =>
+                    {
+                        doc.SetSaveStatus(SaveStatus.DataBase);
+                        WorkPermits.WorkPermitsView.Refresh();
+                        WorkPermits.ClearProperty();
+                    }
+                );
+
+            if (result.IsFailure)
             {
-                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(filesToUpload.ToList()));
-
-                if (uploadResult.IsFailure)
-                {
-                    MessageBox.Show($"{uploadResult.Errors}");
-                    return;
-                }
+                MessageBox.Show($"{result.StringMessage}");
+                return;
             }
-
-            foreach (var item in WorkPermits.LocalWorkPermits)
-                item.SetSaveStatus(SaveStatus.DataBase);
-
-            WorkPermits.WorkPermitsView.Refresh();
-            WorkPermits.ClearProperty();
         }
         private bool CanExecute_CreateWorkPermitCommand() => true;
 
@@ -1585,12 +1580,54 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync UpdateWorkPermitCommand { get; private set; }
         private async Task Execute_UpdateWorkPermitCommand()
         {
-            var workPermitService = _workPermitApiServiceFactory.Create(WorkPermits!.EmployeeId!);
+            if (!WorkPermits.PendingFilePaths.Any())
+            {
+                MessageBox.Show("Выберите хотя бы один файл для добавления", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
-            var dbResult = await workPermitService.UpdateWorkPermitAsync
+            var selectedDoc = WorkPermits.SelectedLocalWorkPermit;
+
+            if (selectedDoc == null)
+                return;
+
+            var processResult = await _documentProcessingService.ProcessFilesToPdfAsync
                 (
-                    Guid.Parse(WorkPermits.SelectedWorkPermit.WorkPermitId),
-                    new UpdateWorkPermitRequest
+                    WorkPermits.PendingFilePaths,
+                    WorkPermits.PermitType.Name,
+                    WorkPermits.EmployeeId!,
+                    WorkPermits.WorkPermitNumber
+                );
+
+            if (processResult.IsFailure)
+            {
+                MessageBox.Show(processResult.StringMessage);
+                return;
+            }
+
+            var (pdfBytes, fileName) = processResult.Value;
+
+            var result = await _documentUpdateService.UpdateDocumentFileAsync
+                (
+                    newFileBytes: pdfBytes,
+                    newFileName: fileName,
+                    oldFileKey: selectedDoc.FileKey,
+
+                    uploadRequest: (bytes, fName) => new UploadFileRequest
+                        (
+                            FileConst.BUCKET_NAME,
+                            WorkPermits.PermitType.Name,
+                            FileConst.BuildEmployeeFolder
+                                (
+                                    WorkPermits.EmployeeId!,
+                                    EmployeeFolderType.WorkPermit
+                                ),
+                            FileBytes: bytes,
+                            FileName: fName
+                        ),
+
+                    dbRequest: s3FileName => new UpdateWorkPermitRequest
                         (
                             WorkPermits.WorkPermitName,
                             WorkPermits.DocumentSeries,
@@ -1600,18 +1637,22 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                             WorkPermits.IssuingAuthority,
                             WorkPermits.IssueDate,
                             WorkPermits.ExpiryDate,
+                            FileConst.BUCKET_NAME,
+                            s3FileName,
                             WorkPermits.PermitType.Id,
                             WorkPermits.AdmissionStatus.Id
-                        )
+                        ),
+
+                    dbUpdateAsync: async requests => await _workPermitApiServiceFactory.Create(WorkPermits.EmployeeId!)
+                        .UpdateWorkPermitAsync(Guid.Parse(selectedDoc.WorkPermitId), requests)
                 );
 
-            if (dbResult.IsFailure)
+            if (result.IsFailure)
             {
-                MessageBox.Show($"{dbResult.Errors}");
+                MessageBox.Show(result.StringMessage);
                 return;
             }
 
-            WorkPermits.WorkPermitsView.Refresh();
             WorkPermits.ClearProperty();
         }
         private bool CanExecute_UpdateWorkPermitCommand() => true;
@@ -1620,34 +1661,29 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync<WorkPermitDisplay> DeleteWorkPermitCommand { get; private set; }
         private async Task Execute_DeleteWorkPermitCommand(WorkPermitDisplay display)
         {
-            List<Error> errors = [];
+            if (display == null)
+                return;
 
-            Func<Task> func = display.SaveStatus switch
+            var result = await _documentDeletionService.DeleteDocumentAsync
+            (
+                document: display,
+                collection: WorkPermits!.LocalWorkPermits,
+                getId: doc => Guid.Parse(doc.WorkPermitId),
+                getFileKey: doc => doc.FileKey,
+                dbDeleteAsync: async id => await _workPermitApiServiceFactory.Create(WorkPermits.EmployeeId!)
+                    .DeleteWorkPermitAsync(id),
+                refreshView: () =>
+                {
+                    WorkPermits.WorkPermitsView.Refresh();
+                    WorkPermits.ClearProperty();
+                }
+            );
+
+            if (result.IsFailure)
             {
-                SaveStatus.Local => async () =>
-                {
-                    WorkPermits.LocalWorkPermits.Remove(display);
-                    WorkPermits.WorkPermitsView.Refresh();
-                    WorkPermits.ClearProperty();
-                },
-                SaveStatus.DataBase => async () =>
-                {
-                    var result = await _workPermitApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeleteWorkPermitAsync(Guid.Parse(display.WorkPermitId));
-
-                    if (!result.IsSuccess)
-                        errors.AddRange(result.Errors);
-
-                    WorkPermits.LocalWorkPermits.Remove(display);
-                    WorkPermits.WorkPermitsView.Refresh();
-                    WorkPermits.ClearProperty();
-                },
-
-                _ => async () => Result.Success()
-            };
-
-            await func();
-
-            errors.ShowError();
+                MessageBox.Show(result.StringMessage);
+                return;
+            }
         }
         private bool CanExecute_DeleteWorkPermitCommand(WorkPermitDisplay display) => SelectedEmployee != null;
 

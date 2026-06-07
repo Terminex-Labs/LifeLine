@@ -137,7 +137,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             ContactInformation = new();
             PersonalDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, DocumentTypes);
             EducationDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, DocumentTypes, EducationLevels);
-            WorkPermits = new(_fileDialogService, _documentConversionService, PermitTypes, AdmissionStatuses);
+            WorkPermits = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, PermitTypes, AdmissionStatuses);
             Specialties = new();
             AssigmentsContracts = new(_fileDialogService, _documentConversionService, _positionReadOnlyApiServiceFactory, Departments, Managers, Statuses, EmployeeTypes);
 
@@ -457,85 +457,56 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         private async Task<Result> CreateWorkPermits()
         {
-            var workPermitService = _workPermitApiServiceFactory.Create(WorkPermits!.EmployeeId!);
+            if (WorkPermits?.LocalWorkPermits == null)
+                return Result.Failure(Error.Validation("Данные отсутствуют!"));
 
-            var dbResult = await workPermitService.CreateManyAsync
+            var documentsToSave = WorkPermits.LocalWorkPermits
+                .Where(x => x.SaveStatus == SaveStatus.Local).ToList();
+
+            if (documentsToSave.Count <= 0)
+                return Result.Failure(Error.Validation("Документы для сохранения отсутствуют!"));
+
+            var docsToSave = await _documentSaveService.SaveLocalDocumentsAsync
+            (
+                documentsToSave: documentsToSave,
+
+                uploadRequest: doc => new UploadFilesDataRequest
                 (
-                    new CreateManyWorkPermitsRequest
-                        (
-                            [.. WorkPermits.LocalWorkPermits.Select
-                                (
-                                    x => new CreateManyDataWorkPermitsRequest
-                                        (
-                                            x.WorkPermitName,
-                                            x.DocumentSeries,
-                                            x.WorkPermitNumber,
-                                            x.ProtocolNumber,
-                                            x.SpecialtyName,
-                                            x.IssuingAuthority,
-                                            x.IssueDate.ToString(),
-                                            x.ExpiryDate.ToString(),
-                                            x.PermitType.Id,
-                                            x.AdmissionStatus.Id
-                                        )
-                                )
-                            ]
-                        )
-                );
+                    BucketName: FileConst.BUCKET_NAME,
+                    AdditionalName: doc.PermitType.Name,
+                    SubFolder: FileConst.BuildEmployeeFolder
+                    (
+                        WorkPermits.EmployeeId!,
+                        EmployeeFolderType.WorkPermit
+                    ),
+                    FileBytes: doc.FileBytes,
+                    FileName: doc.FileName,
+                    ContentType: doc.ContentType ?? "application/pdf"
+                ),
 
-            if (dbResult.IsFailure)
-                return Result.Failure(dbResult.Errors);
+                dbRequest: (doc, s3FileName) => new CreateManyDataWorkPermitsRequest
+                (
+                    doc.WorkPermitName,
+                    doc.DocumentSeries,
+                    doc.WorkPermitNumber,
+                    doc.ProtocolNumber,
+                    doc.SpecialtyName,
+                    doc.IssuingAuthority,
+                    doc.IssueDate.ToString(),
+                    doc.ExpiryDate.ToString(),
+                    FileConst.BUCKET_NAME,
+                    s3FileName,
+                    doc.PermitType.Id,
+                    doc.AdmissionStatus.Id
+                ),
 
-            var filesToUpload = WorkPermits.LocalWorkPermits.Where(x => x.HasFileForUpload)
-                .Select(x =>
-                {
-                    if (x.FileBytes != null && !string.IsNullOrWhiteSpace(x.FileName))
-                    {
-                        return new UploadFilesDataRequest
-                            (
-                                FileConst.BUCKET_NAME,
-                                x.PermitType.Name,
-                                FileConst.BuildEmployeeFolder
-                                    (
-                                        WorkPermits.EmployeeId!,
-                                        EmployeeFolderType.WorkPermit
-                                    ),
-                                FilePath: null,
-                                FileBytes: x.FileBytes,
-                                FileName: x.FileName,
-                                ContentType: x.ContentType ?? "application/pdf"
-                            );
-                    }
-                    else if (!string.IsNullOrWhiteSpace(x.FileName) && System.IO.File.Exists(x.FilePath))
-                    {
-                        return new UploadFilesDataRequest
-                            (
-                                FileConst.BUCKET_NAME,
-                                x.PermitType.Name,
-                                FileConst.BuildEmployeeFolder
-                                    (
-                                        WorkPermits.EmployeeId!,
-                                        EmployeeFolderType.WorkPermit
-                                    ),
-                                FilePath: x.FilePath,
-                                FileBytes: null,
-                                FileName: null,
-                                ContentType: null
-                            );
-                    }
+                dbSaveAsync: async requests =>
+                    await _workPermitApiServiceFactory
+                        .Create(WorkPermits.EmployeeId!)
+                        .CreateManyAsync(new CreateManyWorkPermitsRequest([.. requests])),
 
-                    return null;
-                })
-                .Where(x => x != null)
-                .ToArray();
-
-            if (filesToUpload.Any())
-            {
-                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(filesToUpload.ToList()!));
-
-                if (uploadResult.IsFailure)
-                    return Result.Failure(uploadResult.Errors);
-            }
+                markAsSavedAction: doc => doc.SetSaveStatus(SaveStatus.DataBase)
+            );
 
             return Result.Success();
         }
