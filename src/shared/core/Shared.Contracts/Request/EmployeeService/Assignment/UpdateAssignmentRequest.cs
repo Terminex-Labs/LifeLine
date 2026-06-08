@@ -1,6 +1,4 @@
-﻿using Shared.Contracts.Request.Shared;
-
-namespace Shared.Contracts.Request.EmployeeService.Assignment
+﻿namespace Shared.Contracts.Request.EmployeeService.Assignment
 {
     public sealed record UpdateAssignmentRequest
         (
@@ -20,6 +18,7 @@ namespace Shared.Contracts.Request.EmployeeService.Assignment
             DateTime StartDate,
             DateTime EndDate,
             decimal Salary,
-            FileInput? FileKey
+            string? BucketName,
+            string? FileName
         );
 }

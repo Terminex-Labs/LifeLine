@@ -38,7 +38,8 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.Assignments.C
                             assignmentData.Contracts.StartDate,
                             assignmentData.Contracts.EndDate,
                             assignmentData.Contracts.Salary,
-                            null
+                            assignmentData.Contracts.BucketName,
+                            assignmentData.Contracts.FileName
                         );
 
                     employee.AddAssignment

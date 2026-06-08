@@ -26,6 +26,7 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.Assignments.U
             DateTime StartDate,
             DateTime EndDate,
             decimal Salary,
-            FileInput? FileKey
+            string? BucketName,
+            string? FileName
         );
 }

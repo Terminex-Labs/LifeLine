@@ -36,6 +36,7 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.Assignments.C
                         request.Contract.StartDate,
                         request.Contract.EndDate,
                         request.Contract.Salary,
+                        null,
                         null
                     );
 
