@@ -317,7 +317,6 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                     Managers,
                     Statuses,
                     EmployeeTypes,
-                    string.Empty,
                     SaveStatus.Local
                 );
         }
@@ -388,7 +387,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                                             AssignmentContractDisplay.StartDate,
                                             AssignmentContractDisplay.EndDate,
                                             AssignmentContractDisplay.Salary,
-                                            null
+                                            null, null
                                         )
                                 )
                         );
