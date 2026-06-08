@@ -5,7 +5,6 @@ using LifeLine.Employee.Service.Application.Features.Employees.Assignments.Updat
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Contracts.Request.EmployeeService.Assignment;
-using System.Diagnostics;
 
 namespace LifeLine.Employee.Service.Api.Controllers.Api
 {
@@ -70,7 +69,8 @@ namespace LifeLine.Employee.Service.Api.Controllers.Api
                                             x.Contracts.StartDate,
                                             x.Contracts.EndDate,
                                             x.Contracts.Salary,
-                                            null
+                                            x.Contracts.BucketName,
+                                            x.Contracts.FileName
                                         )
                                 )
                         )                    
@@ -108,7 +108,8 @@ namespace LifeLine.Employee.Service.Api.Controllers.Api
                         request.Contract.StartDate,
                         request.Contract.EndDate,
                         request.Contract.Salary,
-                        request.Contract.FileKey
+                        request.Contract.BucketName,
+                        request.Contract.FileName
                     )
                 );
 
