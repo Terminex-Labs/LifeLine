@@ -25,7 +25,6 @@ namespace LifeLine.HrPanel.Desktop.Models
                 IReadOnlyCollection<ManagerDisplay?> managers,
                 IReadOnlyCollection<StatusDisplay> statuses,
                 IReadOnlyCollection<EmployeeTypeDisplay> employeeTypes,
-                string? filePath,
                 SaveStatus saveStatus
             )
         {
@@ -49,7 +48,7 @@ namespace LifeLine.HrPanel.Desktop.Models
             _startDate = contractModel.ContractStartDate;
             _endDate = contractModel.ContractEndDate;
             _salary = contractModel.Salary;
-            FilePath = filePath;
+            _fileKey = contractModel.ContractFileKey;
             SaveStatus = saveStatus;
 
             SetEmployeeType(_contractModel.EmployeeTypeId);
@@ -64,7 +63,7 @@ namespace LifeLine.HrPanel.Desktop.Models
 
         public override string ToString()
         {
-            return $"{Department.Id} - {Position.Id} - {Manager?.Id} - {HireDate} - {TerminationDate} - {Status.Id} - {FilePath} - {EmployeeType.Id} - {ContractNumber} - {StartDate} - {EndDate} - {Salary}";
+            return $"{Department.Id} - {Position.Id} - {Manager?.Id} - {HireDate} - {TerminationDate} - {Status.Id} - {EmployeeType.Id} - {ContractNumber} - {StartDate} - {EndDate} - {Salary} - {FileKey}";
         }
 
         #region Assignment
@@ -117,10 +116,11 @@ namespace LifeLine.HrPanel.Desktop.Models
         }
         public void SetStatus(string id) => Status = _statuses.FirstOrDefault(x => x.Id == id)!;
 
-        public string? FilePath
+        private string? _fileKey;
+        public string? FileKey
         {
-            get => field;
-            set => SetProperty(ref field, value);
+            get => _fileKey;
+            set => SetProperty(ref _fileKey, value);
         }
 
         #endregion
@@ -170,9 +170,6 @@ namespace LifeLine.HrPanel.Desktop.Models
         public byte[]? FileBytes { get; set; }
         public string? FileName { get; set; }
         public string? ContentType { get; set; } = "application/pdf";
-
-        [System.ComponentModel.Browsable(false)]
-        public bool HasFileForUpload => FileBytes != null || (!string.IsNullOrWhiteSpace(FilePath) && System.IO.File.Exists(FilePath));
 
         public AssignmentResponse GetUnderLineModelAssignment() => _assignmentModel;
         public ContractResponse GetUnderLineModelContract() => _contractModel;

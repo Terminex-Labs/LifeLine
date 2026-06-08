@@ -1,7 +1,6 @@
 ﻿using LifeLine.Employee.Service.Domain.ValueObjects.Contracts;
 using LifeLine.Employee.Service.Domain.ValueObjects.Employees;
 using LifeLine.Employee.Service.Domain.ValueObjects.EmployeeType;
-using Shared.Domain.ValueObjects;
 using Shared.Kernel.Primitives;
 
 namespace LifeLine.Employee.Service.Domain.Models
@@ -14,7 +13,7 @@ namespace LifeLine.Employee.Service.Domain.Models
         public DateTime StartDate { get; private set; }
         public DateTime EndDate { get; private set; }
         public Salary Salary { get; private set; }
-        public ImageKey? FileKey { get; private set; }
+        public FileUrl? FileKey { get; private set; }
 
         public Employee Employee { get; private set; } = null!;
 
@@ -27,8 +26,8 @@ namespace LifeLine.Employee.Service.Domain.Models
                 ContractNumber contractNumber, 
                 DateTime startDate, 
                 DateTime endDate, 
-                Salary salary, 
-                ImageKey? fileKey
+                Salary salary,
+                FileUrl? fileKey
             ) : base(id)
         {
             EmployeeId = employeeId;
@@ -47,8 +46,9 @@ namespace LifeLine.Employee.Service.Domain.Models
                 string contractNumber, 
                 DateTime startDate, 
                 DateTime endDate, 
-                decimal salary, 
-                ImageKey? fileKey
+                decimal salary,
+                string? bucketName,
+                string? fileName
             ) 
             => new Contract
                 (
@@ -56,10 +56,10 @@ namespace LifeLine.Employee.Service.Domain.Models
                     EmployeeId.Create(employeeId), 
                     EmployeeTypeId.Create(employeeTypeId), 
                     ContractNumber.Create(contractNumber), 
-                    startDate, 
-                    endDate, 
+                    startDate.ToUniversalTime(), 
+                    endDate.ToUniversalTime(), 
                     Salary.FromRubles(salary),
-                    fileKey
+                    bucketName != null && fileName != null ? FileUrl.Create(bucketName, fileName).Value : null
                 );
 
         internal void UpdateEmployeeType(EmployeeTypeId employeeTypeId)
@@ -90,6 +90,12 @@ namespace LifeLine.Employee.Service.Domain.Models
         {
             if (salary != Salary)
                 Salary = salary;
+        }
+
+        internal void UpdateFileKey(FileUrl? fileUrl)
+        {
+            if (fileUrl != FileKey)
+                FileKey = fileUrl;
         }
     }
 }

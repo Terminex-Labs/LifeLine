@@ -631,7 +631,8 @@ namespace LifeLine.Employee.Service.Domain.Models
                 DateTime startDate,
                 DateTime endDate,
                 decimal salary,
-                ImageKey? fileKey
+                string? bucketName,
+                string? fileName
             )
         {
             var contract = Contract.Create
@@ -642,7 +643,8 @@ namespace LifeLine.Employee.Service.Domain.Models
                     startDate,
                     endDate,
                     salary,
-                    fileKey
+                    bucketName,
+                    fileName
                 );
 
             _contracts.Add(contract);
@@ -657,6 +659,8 @@ namespace LifeLine.Employee.Service.Domain.Models
             var assignment = this.Assignments.FirstOrDefault(d => d.Id == id);
             GuardException.Against.That(assignment == null, () => new NotFoundAssignmentException($"Назначение не найдено!"));
 
+            GuardException.Against.That(Contracts.Count == 0, () => new EmptyContractException($"Тип сотрудника: Контракт у пользователя: '{Surname} {Name} {Patronymic}' не существует!"));
+
             var contract = this.Contracts.FirstOrDefault(c => c.Id == assignment!.ContractId);
             GuardException.Against.That(contract == null, () => new NotFoundContractException($"Контракт не найден!"));
 
@@ -669,6 +673,8 @@ namespace LifeLine.Employee.Service.Domain.Models
 
             var assignment = this.Assignments.FirstOrDefault(d => d.Id == id);
             GuardException.Against.That(assignment == null, () => new NotFoundAssignmentException($"Назначение не найдено!"));
+
+            GuardException.Against.That(Contracts.Count == 0, () => new EmptyContractException($"Номер контракта: Контракт у пользователя: '{Surname} {Name} {Patronymic}' не существует!"));
 
             var contract = this.Contracts.FirstOrDefault(c => c.Id == assignment!.ContractId);
             GuardException.Against.That(contract == null, () => new NotFoundContractException($"Контракт не найден!"));
@@ -683,6 +689,8 @@ namespace LifeLine.Employee.Service.Domain.Models
             var assignment = this.Assignments.FirstOrDefault(d => d.Id == id);
             GuardException.Against.That(assignment == null, () => new NotFoundAssignmentException($"Назначение не найдено!"));
 
+            GuardException.Against.That(Contracts.Count == 0, () => new EmptyContractException($"Дата начала: Контракт у пользователя: '{Surname} {Name} {Patronymic}' не существует!"));
+
             var contract = this.Contracts.FirstOrDefault(c => c.Id == assignment!.ContractId);
             GuardException.Against.That(contract == null, () => new NotFoundContractException($"Контракт не найден!"));
 
@@ -695,6 +703,8 @@ namespace LifeLine.Employee.Service.Domain.Models
 
             var assignment = this.Assignments.FirstOrDefault(d => d.Id == id);
             GuardException.Against.That(assignment == null, () => new NotFoundAssignmentException($"Назначение не найдено!"));
+
+            GuardException.Against.That(Contracts.Count == 0, () => new EmptyContractException($"Дата окончания: Контракт у пользователя: '{Surname} {Name} {Patronymic}' не существует!"));
 
             var contract = this.Contracts.FirstOrDefault(c => c.Id == assignment!.ContractId);
             GuardException.Against.That(contract == null, () => new NotFoundContractException($"Контракт не найден!"));
@@ -709,10 +719,27 @@ namespace LifeLine.Employee.Service.Domain.Models
             var assignment = this.Assignments.FirstOrDefault(d => d.Id == id);
             GuardException.Against.That(assignment == null, () => new NotFoundAssignmentException($"Назначение не найдено!"));
 
+            GuardException.Against.That(Contracts.Count == 0, () => new EmptyContractException($"Зарплата: Контракт у пользователя: '{Surname} {Name} {Patronymic}' не существует!"));
+
             var contract = this.Contracts.FirstOrDefault(c => c.Id == assignment!.ContractId);
             GuardException.Against.That(contract == null, () => new NotFoundContractException($"Контракт не найден!"));
 
             contract!.UpdateSalary(Salary.FromRubles(salary));
+        }
+
+        public void UpdateAssignmentContractFileKey(Guid id, string? bucketName, string? fileName)
+        {
+            GuardException.Against.That(Assignments.Count == 0, () => new EmptyAssignmentException($"Файл: Назначение у пользователя: '{Surname} {Name} {Patronymic}' не существует!"));
+
+            var assignment = this.Assignments.FirstOrDefault(d => d.Id == id);
+            GuardException.Against.That(assignment == null, () => new NotFoundAssignmentException($"Назначение не найдено!"));
+
+            GuardException.Against.That(Contracts.Count == 0, () => new EmptyContractException($"Файл: Контракт у пользователя: '{Surname} {Name} {Patronymic}' не существует!"));
+            
+            var contract = this.Contracts.FirstOrDefault(c => c.Id == assignment!.ContractId);
+            GuardException.Against.That(contract == null, () => new NotFoundContractException($"Контракт не найден!"));
+
+            contract!.UpdateFileKey(bucketName != null && fileName != null ? FileUrl.Create(bucketName, fileName).Value : null);
         }
 
         #endregion

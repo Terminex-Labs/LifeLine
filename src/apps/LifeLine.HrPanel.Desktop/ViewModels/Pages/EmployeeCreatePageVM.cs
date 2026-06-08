@@ -139,7 +139,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             EducationDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, DocumentTypes, EducationLevels);
             WorkPermits = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, PermitTypes, AdmissionStatuses);
             Specialties = new();
-            AssigmentsContracts = new(_fileDialogService, _documentConversionService, _positionReadOnlyApiServiceFactory, Departments, Managers, Statuses, EmployeeTypes);
+            AssigmentsContracts = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, _positionReadOnlyApiServiceFactory, Departments, Managers, Statuses, EmployeeTypes);
 
             ExecuteStepCommand = new RelayCommandAsync<EmployeeCreationSteps>(Execute_StepCommand, CanExecute_StepCommand);
         }
@@ -532,90 +532,61 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
 
         private async Task<Result> CreateAssignmentContracts()
         {
-            var assignmentService = _assignmentApiServiceFactory.Create(AssigmentsContracts!.EmployeeId!);
+            if (AssigmentsContracts?.LocalAssignmentsContracts == null)
+                return Result.Failure(Error.Validation("Данные отсутствуют!"));
 
-            var dbResult = await assignmentService.CreateManyAsync
+            var documentsToSave = AssigmentsContracts.LocalAssignmentsContracts
+                .Where(x => x.SaveStatus == SaveStatus.Local).ToList();
+
+            if (documentsToSave.Count <= 0)
+                return Result.Failure(Error.Validation("Документы для сохранения отсутствуют!"));
+
+            var docsToSave = await _documentSaveService.SaveLocalDocumentsAsync
+            (
+                documentsToSave: documentsToSave,
+
+                uploadRequest: doc => new UploadFilesDataRequest
                 (
-                    new CreateManyAssignmentsReqeust
+                    BucketName: FileConst.BUCKET_NAME,
+                    AdditionalName: doc.Position.Name,
+                    SubFolder: FileConst.BuildEmployeeFolder
                         (
-                            [.. AssigmentsContracts.LocalAssignmentsContracts.Select
-                                (
-                                    x => new CreateManyDataAssignmentsReqeust
-                                        (
-                                            x.Position.Id,
-                                            x.Department.Id,
-                                            x.Manager?.Id,
-                                            x.HireDate,
-                                            x.TerminationDate,
-                                            x.Status.Id,
-                                            new CreateManyDataAssignmentContractReqeust
-                                                (
-                                                    x.EmployeeType.Id,
-                                                    x.ContractNumber,
-                                                    x.StartDate,
-                                                    x.EndDate,
-                                                    x.Salary,
-                                                    null
-                                                )
-                                        )
-                                )
-                            ]
-                        )
-                );
+                            AssigmentsContracts.EmployeeId!,
+                            EmployeeFolderType.Assignment
+                        ),
+                    FileBytes: doc.FileBytes,
+                    FileName: doc.FileName,
+                    ContentType: doc.ContentType ?? "application/pdf"
+                ),
 
-            if (dbResult.IsFailure)
-                return Result.Failure(dbResult.Errors);
+                dbRequest: (doc, s3FileName) => new CreateManyDataAssignmentsReqeust
+                (
+                    doc.Position.Id,
+                    doc.Department.Id,
+                    doc.Manager?.Id,
+                    doc.HireDate,
+                    doc.TerminationDate,
+                    doc.Status.Id,
 
-            var filesToUpload = AssigmentsContracts.LocalAssignmentsContracts.Where(x => x.HasFileForUpload)
-                .Select(x =>
-                {
-                    if (x.FileBytes != null && !string.IsNullOrWhiteSpace(x.FileName))
-                    {
-                        return new UploadFilesDataRequest
-                            (
-                                FileConst.BUCKET_NAME,
-                                x.Position.Name,
-                                FileConst.BuildEmployeeFolder
-                                    (
-                                        AssigmentsContracts.EmployeeId!,
-                                        EmployeeFolderType.Assignment
-                                    ),
-                                FilePath: null,
-                                FileBytes: x.FileBytes,
-                                FileName: x.FileName,
-                                ContentType: x.ContentType ?? "application/pdf"
-                            );
-                    }
-                    else if (!string.IsNullOrWhiteSpace(x.FilePath) && System.IO.File.Exists(x.FilePath))
-                    {
-                        return new UploadFilesDataRequest
-                            (
-                                FileConst.BUCKET_NAME,
-                                x.Position.Name,
-                                FileConst.BuildEmployeeFolder
-                                    (
-                                        AssigmentsContracts.EmployeeId!,
-                                        EmployeeFolderType.Assignment
-                                    ),
-                                FilePath: x.FilePath,
-                                FileBytes: null,
-                                FileName: null,
-                                ContentType: null
-                            );
-                    }
+                    new CreateManyDataAssignmentContractReqeust
+                    (
+                        doc.EmployeeType.Id,
+                        doc.ContractNumber,
+                        doc.StartDate,
+                        doc.EndDate,
+                        doc.Salary,
+                        FileConst.BUCKET_NAME,
+                        s3FileName
+                    )
+                ),
 
-                    return null;
-                })
-                .Where(x => x != null)
-                .ToArray();
+                dbSaveAsync: async requests =>
+                    await _assignmentApiServiceFactory
+                        .Create(AssigmentsContracts.EmployeeId!)
+                        .CreateManyAsync(new CreateManyAssignmentsReqeust([.. requests])),
 
-            if (filesToUpload.Any())
-            {
-                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(filesToUpload.ToList()!));
-
-                if (uploadResult.IsFailure)
-                    return Result.Failure(uploadResult.Errors);
-            }
+                markAsSavedAction: doc => doc.SetSaveStatus(SaveStatus.DataBase)
+            );
 
             return Result.Success();
         }

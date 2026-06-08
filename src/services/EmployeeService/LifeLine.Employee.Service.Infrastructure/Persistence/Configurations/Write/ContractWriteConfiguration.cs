@@ -48,7 +48,7 @@ namespace LifeLine.Employee.Service.Infrastructure.Persistence.Configurations.Wr
 
             builder.Property(x => x.FileKey)
                    .HasColumnName("FileKey")
-                   .HasConversion(inDB => inDB != null ? inDB.Value : null, outDB => outDB != null ? ImageKey.Create(outDB) : ImageKey.Empty);
+                   .HasConversion(outDB => outDB.HasValue ? outDB.Value.Value : null, inDB => string.IsNullOrWhiteSpace(inDB) ? null : new FileUrl(inDB));
 
             builder.HasOne<EmployeeType>().WithMany().HasForeignKey(contract => contract.EmployeeTypeId).IsRequired().OnDelete(DeleteBehavior.Restrict);
         }

@@ -39,6 +39,7 @@ namespace LifeLine.Employee.Service.Application.Features.Employees.Assignments.U
                 employee.UpdateAssignmentContractStartDate(request.Id, request.Contract.StartDate);
                 employee.UpdateAssignmentContractEndDate(request.Id, request.Contract.EndDate);
                 employee.UpdateAssignmentContractSalary(request.Id, request.Contract.Salary);
+                employee.UpdateAssignmentContractFileKey(request.Id, request.Contract.BucketName, request.Contract.FileName);
 
                 await _writeContext.SaveChangesAsync(cancellationToken);
 

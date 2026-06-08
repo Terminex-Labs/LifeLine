@@ -161,7 +161,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
             EducationDocuments = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, DocumentTypes, EducationLevels);
             WorkPermits = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, PermitTypes, AdmissionStatuses);
             Specialties = new();
-            AssigmentsContracts = new(_fileDialogService, _documentConversionService, _positionReadOnlyApiServiceFactory, Departments, Managers, Statuses, EmployeeTypes);
+            AssigmentsContracts = new(_fileDialogService, _fileStorageService, _filePreviewService, _documentProcessingService, _positionReadOnlyApiServiceFactory, Departments, Managers, Statuses, EmployeeTypes);
 
             UpdateEmployeePersonalInfoCommand = new RelayCommandAsync(Execute_UpdateEmployeePersonalInfoCommand, CanExecute_UpdateEmployeePersonalInfoCommand);
 
@@ -634,8 +634,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
                                 contractsResponse.Salary,
                                 contractsResponse?.ContractFileKey
                             ),
-                        Departments, Positions, Managers, Statuses, EmployeeTypes,
-                        string.Empty, SaveStatus.DataBase
+                        Departments, Positions, Managers, Statuses, EmployeeTypes, SaveStatus.DataBase
                     );
 
                 AssigmentsContracts.LocalAssignmentsContracts.Add(display);
@@ -1737,81 +1736,73 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync CreateAssignmentContractCommand { get; private set; }
         private async Task Execute_CreateAssignmentContractCommand()
         {
-            var assignmentService = _assignmentApiServiceFactory.Create(AssigmentsContracts!.EmployeeId!);
-
-            var dbResult = await assignmentService.CreateManyAsync
-                (
-                    new CreateManyAssignmentsReqeust
-                        (
-                            [.. AssigmentsContracts.LocalAssignmentsContracts.Where(x => x.SaveStatus == SaveStatus.Local)
-                                .Select
-                                (
-                                    x => new CreateManyDataAssignmentsReqeust
-                                        (
-                                            x.Position.Id,
-                                            x.Department.Id,
-                                            x.Manager?.Id,
-                                            x.HireDate,
-                                            x.TerminationDate,
-                                            x.Status.Id,
-                                            new CreateManyDataAssignmentContractReqeust
-                                                (
-                                                    x.EmployeeType.Id,
-                                                    x.ContractNumber,
-                                                    x.StartDate,
-                                                    x.EndDate,
-                                                    x.Salary,
-                                                    null
-                                                )
-                                        )
-                                )
-                            ]
-                        )
-                );
-
-            if (dbResult.IsFailure)
+            if (AssigmentsContracts == null)
             {
-                MessageBox.Show($"{dbResult.StringMessage}");
+                MessageBox.Show("Данные отсутствуют!");
                 return;
             }
 
-            var filesToUpload = AssigmentsContracts.LocalAssignmentsContracts.Where(x => x.HasFileForUpload)
-                .Select
+            var documentsToSave = AssigmentsContracts.LocalAssignmentsContracts
+                .Where(x => x.SaveStatus == SaveStatus.Local).ToList();
+
+            if (documentsToSave.Count <= 0)
+                return;
+
+            var result = await _documentSaveService.SaveLocalDocumentsAsync
+                (
+                    documentsToSave: documentsToSave,
+
+                    uploadRequest: doc => new UploadFilesDataRequest
                     (
-                        x => new UploadFilesDataRequest
+                        BucketName: FileConst.BUCKET_NAME,
+                        AdditionalName: doc.Position.Name,
+                        SubFolder: FileConst.BuildEmployeeFolder
                             (
-                                FileConst.BUCKET_NAME,
-                                x.Position.Name,
-                                FileConst.BuildEmployeeFolder
-                                    (
-                                        AssigmentsContracts.EmployeeId!,
-                                        EmployeeFolderType.Assignment
-                                    ),
-                                FilePath: null,
-                                FileBytes: x.FileBytes,
-                                FileName: x.FileName,
-                                ContentType: x.ContentType ?? "application/pdf"
-                            )
-                    )
-                    .Where(x => x != null)
-                    .ToArray();
+                                AssigmentsContracts.EmployeeId!,
+                                EmployeeFolderType.Assignment
+                            ),
+                        FileBytes: doc.FileBytes,
+                        FileName: doc.FileName,
+                        ContentType: doc.ContentType ?? "application/pdf"
+                    ),
 
-            if (filesToUpload.Any())
+                    dbRequest: (doc, s3FileName) => new CreateManyDataAssignmentsReqeust
+                    (
+                        doc.Position.Id,
+                        doc.Department.Id,
+                        doc.Manager?.Id,
+                        doc.HireDate,
+                        doc.TerminationDate,
+                        doc.Status.Id,
+
+                        new CreateManyDataAssignmentContractReqeust
+                        (
+                            doc.EmployeeType.Id,
+                            doc.ContractNumber,
+                            doc.StartDate,
+                            doc.EndDate,
+                            doc.Salary,
+                            FileConst.BUCKET_NAME,
+                            s3FileName
+                        )
+                    ),
+
+                    dbSaveAsync: async requests => await _assignmentApiServiceFactory.Create(AssigmentsContracts.EmployeeId!)
+                        .CreateManyAsync(new CreateManyAssignmentsReqeust([.. requests])),
+
+                    markAsSavedAction: doc =>
+                    {
+                        doc.SetSaveStatus(SaveStatus.DataBase);
+                        AssigmentsContracts.AssignmentsContractsView.Refresh();
+                        AssigmentsContracts.ClearProperty();
+                    }
+                );
+
+            if (result.IsFailure)
             {
-                var uploadResult = await _fileStorageService.UploadFilesAsync(new UploadFilesRequest(filesToUpload.ToList()!));
-
-                if (uploadResult.IsFailure)
-                {
-                    MessageBox.Show($"{uploadResult.StringMessage}");
-                    return;
-                }
+                MessageBox.Show($"{result.StringMessage}");
+                return;
             }
-
-            foreach (var item in AssigmentsContracts.LocalAssignmentsContracts)
-                item.SetSaveStatus(SaveStatus.DataBase);
-
-            AssigmentsContracts.AssignmentsContractsView.Refresh();
-            AssigmentsContracts.ClearProperty();
         }
         private bool CanExecute_CreateAssignmentContractCommand() => true;
 
@@ -1819,39 +1810,83 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync UpdateAssignmentContractCommand { get; private set; }
         private async Task Execute_UpdateAssignmentContractCommand()
         {
-            var assignmentService = _assignmentApiServiceFactory.Create(AssigmentsContracts!.EmployeeId!);
-
-            var dbResult = await assignmentService.UpdateAssignmentAsync
-                (
-                    Guid.Parse(AssigmentsContracts.SelectedAssignmentContract.AssignmentId),
-                    Guid.Parse(AssigmentsContracts.SelectedAssignmentContract.ContractId),
-                    new UpdateAssignmentRequest
-                        (
-                            Guid.Parse(AssigmentsContracts.Position.Id),
-                            Guid.Parse(AssigmentsContracts.Department.Id),
-                            Guid.Parse(AssigmentsContracts.Manager.Id),
-                            AssigmentsContracts.HireDate,
-                            AssigmentsContracts.TerminationDate,
-                            Guid.Parse(AssigmentsContracts.Status.Id),
-                            new UpdateAssignmentContractRequest
-                                (
-                                    Guid.Parse(AssigmentsContracts.EmployeeType.Id),
-                                    AssigmentsContracts.ContractNumber,
-                                    AssigmentsContracts.StartDate,
-                                    AssigmentsContracts.EndDate,
-                                    AssigmentsContracts.Salary,
-                                    null
-                                )
-                        )
-                );
-
-            if (dbResult.IsFailure)
+            if (!AssigmentsContracts.PendingFilePaths.Any())
             {
-                MessageBox.Show($"{dbResult.Errors}");
+                MessageBox.Show("Выберите хотя бы один файл для добавления", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            AssigmentsContracts.AssignmentsContractsView.Refresh();
+            var selectedDoc = AssigmentsContracts.SelectedLocalAssignmentContract;
+
+            if (selectedDoc == null)
+                return;
+
+            var processResult = await _documentProcessingService.ProcessFilesToPdfAsync
+                (
+                    AssigmentsContracts.PendingFilePaths,
+                    AssigmentsContracts.Position.Name,
+                    AssigmentsContracts.EmployeeId!,
+                    AssigmentsContracts.ContractNumber
+                );
+
+            if (processResult.IsFailure)
+            {
+                MessageBox.Show(processResult.StringMessage);
+                return;
+            }
+
+            var (pdfBytes, fileName) = processResult.Value;
+
+            var result = await _documentUpdateService.UpdateDocumentFileAsync
+                (
+                    newFileBytes: pdfBytes,
+                    newFileName: fileName,
+                    oldFileKey: selectedDoc.FileKey,
+
+                    uploadRequest: (bytes, fName) => new UploadFileRequest
+                    (
+                        BucketName: FileConst.BUCKET_NAME,
+                        AdditionalName: AssigmentsContracts.Position.Name,
+                        SubFolder: FileConst.BuildEmployeeFolder
+                            (
+                                AssigmentsContracts.EmployeeId!,
+                                EmployeeFolderType.Assignment
+                            ),
+                        FileBytes: bytes,
+                        FileName: fName
+                    ),
+
+                    dbRequest: s3FileName => new UpdateAssignmentRequest
+                    (
+                        Guid.Parse(AssigmentsContracts.Position.Id),
+                        Guid.Parse(AssigmentsContracts.Department.Id),
+                        AssigmentsContracts.Manager != null ? Guid.Parse(AssigmentsContracts.Manager.Id) : null,
+                        AssigmentsContracts.HireDate,
+                        AssigmentsContracts.TerminationDate,
+                        Guid.Parse(AssigmentsContracts.Status.Id),
+                        new UpdateAssignmentContractRequest
+                        (
+                            Guid.Parse(AssigmentsContracts.EmployeeType.Id),
+                            AssigmentsContracts.ContractNumber,
+                            AssigmentsContracts.StartDate,
+                            AssigmentsContracts.EndDate,
+                            AssigmentsContracts.Salary,
+                            FileConst.BUCKET_NAME,
+                            s3FileName
+                        )
+                    ),
+
+                    dbUpdateAsync: async requests => await _assignmentApiServiceFactory.Create(AssigmentsContracts.EmployeeId!)
+                        .UpdateAssignmentAsync(Guid.Parse(selectedDoc.AssignmentId), Guid.Parse(selectedDoc.ContractId), requests)
+                );
+
+            if (result.IsFailure)
+            {
+                MessageBox.Show(result.StringMessage);
+                return;
+            }
+
             AssigmentsContracts.ClearProperty();
         }
         private bool CanExecute_UpdateAssignmentContractCommand() => true;
@@ -1860,34 +1895,29 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Pages
         public RelayCommandAsync<AssignmentContractDisplay> DeleteAssignmentContractCommand { get; private set; }
         private async Task Execute_DeleteAssignmentContractCommand(AssignmentContractDisplay display)
         {
-            List<Error> errors = [];
+            if (display == null)
+                return;
 
-            Func<Task> func = display.SaveStatus switch
+            var result = await _documentDeletionService.DeleteDocumentAsync
+            (
+                document: display,
+                collection: AssigmentsContracts!.LocalAssignmentsContracts,
+                getId: doc => Guid.Parse(doc.AssignmentId),
+                getFileKey: doc => doc.FileKey,
+                dbDeleteAsync: async id => await _assignmentApiServiceFactory.Create(AssigmentsContracts.EmployeeId!)
+                    .DeleteAssignmentContractAsync(id),
+                refreshView: () =>
+                {
+                    AssigmentsContracts.AssignmentsContractsView.Refresh();
+                    AssigmentsContracts.ClearProperty();
+                }
+            );
+
+            if (result.IsFailure)
             {
-                SaveStatus.Local => async () =>
-                {
-                    AssigmentsContracts.LocalAssignmentsContracts.Remove(display);
-                    AssigmentsContracts.AssignmentsContractsView.Refresh();
-                    AssigmentsContracts.ClearProperty();
-                },
-                SaveStatus.DataBase => async () =>
-                {
-                    var result = await _assignmentApiServiceFactory.Create(CurrentEmployeeDetails.EmployeeId).DeleteAssignmentContractAsync(Guid.Parse(display.AssignmentId));
-
-                    if (!result.IsSuccess)
-                        errors.AddRange(result.Errors);
-
-                    AssigmentsContracts.LocalAssignmentsContracts.Remove(display);
-                    AssigmentsContracts.AssignmentsContractsView.Refresh();
-                    AssigmentsContracts.ClearProperty();
-                },
-
-                _ => async () => Result.Success()
-            };
-
-            await func();
-
-            errors.ShowError();
+                MessageBox.Show(result.StringMessage);
+                return;
+            }
         }
         private bool CanExecute_DeleteAssignmentContractCommand(AssignmentContractDisplay display) => SelectedEmployee != null;
 

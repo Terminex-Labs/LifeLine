@@ -1,16 +1,19 @@
 ﻿using LifeLine.Directory.Service.Client.Services.Position.Factories;
+using LifeLine.File.Service.Client;
 using LifeLine.HrPanel.Desktop.Models;
+using LifeLine.HrPanel.Desktop.Services.Document.DocumentProcessing;
+using LifeLine.HrPanel.Desktop.Services.FilePreview;
+using Shared.Contracts.Request.Files;
 using Shared.Contracts.Response.EmployeeService;
 using Shared.WPF.Commands;
 using Shared.WPF.Constants;
 using Shared.WPF.Enums;
 using Shared.WPF.Extensions;
 using Shared.WPF.Helpers;
-using Shared.WPF.Services.Conversion;
 using Shared.WPF.Services.FileDialog;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Data;
 
@@ -19,7 +22,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
     internal sealed class AssigmentsContractsVM : BaseEmployeeViewModel
     {
         private readonly IFileDialogService _fileDialogService;
-        private readonly IDocumentConversionService _documentConversionService;
+        private readonly IFileStorageService _fileStorageService;
+        private readonly IFilePreviewService _filePreviewService;
+        private readonly IDocumentProcessingService _documentProcessingService;
         private readonly IPositionReadOnlyApiServiceFactory _positionReadOnlyApiServiceFactory;
 
         private readonly IReadOnlyCollection<DepartmentDisplay> _departments;
@@ -30,7 +35,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         public AssigmentsContractsVM
             (
                 IFileDialogService fileDialogService,
-                IDocumentConversionService documentConversionService,
+                IFileStorageService fileStorageService,
+                IFilePreviewService filePreviewService,
+                IDocumentProcessingService documentProcessingService,
                 IPositionReadOnlyApiServiceFactory positionReadOnlyApiServiceFactory,
 
                 IReadOnlyCollection<DepartmentDisplay> departments,
@@ -40,7 +47,9 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             )
         {
             _fileDialogService = fileDialogService;
-            _documentConversionService = documentConversionService;
+            _fileStorageService = fileStorageService;
+            _filePreviewService = filePreviewService;
+            _documentProcessingService = documentProcessingService;
             _positionReadOnlyApiServiceFactory = positionReadOnlyApiServiceFactory;
 
             _departments = departments;
@@ -53,6 +62,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             AssignmentsContractsView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(AssignmentContractDisplay.SaveStatus)));
 
             SelectMultipleCommand = new RelayCommand(Execute_SelectMultipleCommand);
+            PreviewCommand = new RelayCommandAsync<PendingFileItem>(Execute_PreviewCommand);
             RemovePendingFileCommand = new RelayCommand<PendingFileItem>(Execute_RemovePendingFileCommand);
             AddAssignmentContractCommandAsync = new RelayCommandAsync(Execute_AddAssignmentContractCommandAsync, CanExecute_AddAssignmentContractCommand);
 
@@ -201,17 +211,19 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
 
         #endregion
 
-        private AssignmentContractDisplay _selectedAssignmentContract;
-        public AssignmentContractDisplay SelectedAssignmentContract
+        private AssignmentContractDisplay? _selectedLocalAssignmentContract;
+        public AssignmentContractDisplay? SelectedLocalAssignmentContract
         {
-            get => _selectedAssignmentContract;
+            get => _selectedLocalAssignmentContract;
             set
             {
                 if (value != null)
                 {
                     SetProp(value);
 
-                    SetProperty(ref _selectedAssignmentContract, value);
+                    SetProperty(ref _selectedLocalAssignmentContract, value);
+
+                    _ = LoadDocumentToQueueAsync(value);
                 }
             }
         }
@@ -232,6 +244,32 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             Salary = value.Salary;
         }
 
+        private async Task LoadDocumentToQueueAsync(AssignmentContractDisplay document)
+        {
+            PendingFilePaths.Clear();
+
+            if (document.SaveStatus != SaveStatus.DataBase)
+                return;
+
+            if (string.IsNullOrWhiteSpace(document.FileKey))
+                return;
+
+            var (bucketName, fileName) = S3UrlParser.Parse(document.FileKey);
+
+            var metadataResult = await _fileStorageService.GetFileMetadataAsync(new GetFileMetadataRequest(bucketName!, fileName!));
+
+            if (metadataResult.IsFailure || metadataResult.Value == null)
+            {
+                MessageBox.Show($"Не удалось получить метаданные: {metadataResult.StringMessage}");
+                return;
+            }
+
+            var pendingItem = PendingFileItem.FromMetadata(PendingFilePaths.Count + 1, metadataResult.Value, document.FileKey);
+
+            PendingFilePaths.Add(pendingItem);
+            UpdateIndexes();
+        }
+
         public ObservableCollection<PendingFileItem> PendingFilePaths { get; private set; } = [];
 
         public RelayCommand SelectMultipleCommand { get; private set; }
@@ -246,6 +284,41 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
                     PendingFilePaths.Add(new PendingFileItem(startIndex++, path));
 
                 UpdateIndexes();
+            }
+        }
+
+        public RelayCommandAsync<PendingFileItem>? PreviewCommand { get; private set; }
+        private async Task Execute_PreviewCommand(PendingFileItem item)
+        {
+            if (item == null)
+            {
+                Debug.WriteLine($"[AssigmentsContractsVM] [Execute_PreviewCommand] item пуст!");
+                return;
+            }
+
+            try
+            {
+                string? tempPath = null;
+
+                if (item.IsRemoteFile && !string.IsNullOrWhiteSpace(item.S3Url))
+                    tempPath = await _filePreviewService.DownloadRemoteFileToTempAsync(item.S3Url, item.FileName);
+                else if (!string.IsNullOrWhiteSpace(item.FilePath) && System.IO.File.Exists(item.FilePath))
+                    tempPath = _filePreviewService.CopyLocalFileToTempAsync(item.FilePath, item.FileName);
+
+                if (string.IsNullOrWhiteSpace(tempPath))
+                {
+                    MessageBox.Show("Не удалось подготовить файл для просмотра", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                _filePreviewService.OpenInDefaultApplication(tempPath);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PreviewCommand] Ошибка: {ex.Message}");
+                MessageBox.Show($"Ошибка при открытии файла: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -277,105 +350,70 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
         public RelayCommandAsync AddAssignmentContractCommandAsync { get; private set; }
         private async Task Execute_AddAssignmentContractCommandAsync()
         {
-            var filesToProcess = PendingFilePaths.Any()
-                ? PendingFilePaths.Select(x => x.FilePath).ToArray()
-                : (FilePath != null ? [FilePath] : Array.Empty<string>());
-
-            if (!filesToProcess.Any())
+            if (!PendingFilePaths.Any())
             {
                 MessageBox.Show("Выберите хотя бы один файл для добавления", "Внимание",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            try
+            var processResult = await _documentProcessingService.ProcessFilesToPdfAsync
+                (
+                    PendingFilePaths,
+                    Position.Name,
+                    EmployeeId!,
+                    ContractNumber
+                );
+
+            if (processResult.IsFailure)
             {
-                var fileBytes = new List<byte[]>();
-                var fileNames = new List<string>();
+                MessageBox.Show(processResult.StringMessage);
+                return;
+            }
 
-                foreach (var path in filesToProcess)
-                {
-                    if (System.IO.File.Exists(path))
-                    {
-                        fileBytes.Add(await System.IO.File.ReadAllBytesAsync(path));
-                        fileNames.Add(Path.GetFileName(path));
-                    }
-                }
+            var (pdfBytes, fileName) = processResult.Value;
 
-                if (!fileBytes.Any())
-                {
-                    MessageBox.Show("Не удалось прочитать выбранные файлы", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                var pdfBytes = await _documentConversionService.ConvertImagesToPdfAsync
+            LocalAssignmentsContracts.Add
+            (
+                new AssignmentContractDisplay
                     (
-                        Position.Name,
-                        EmployeeId!,
-                        fileBytes,
-                        fileNames
-                    );
-
-                var fileName = $"Назначение.pdf";
-
-                //MessageBox.Show($"Position.Id - {Position.Id}\n" +
-                //                $"Position.Name = {Position.Name}");
-
-                LocalAssignmentsContracts.Add
-                    (
-                        new AssignmentContractDisplay
+                        new AssignmentResponse
                             (
-                                new AssignmentResponse
-                                    (
-                                        string.Empty,
-                                        EmployeeId!,
-                                        Position.Id,
-                                        Department.Id,
-                                        Manager?.Id,
-                                        HireDate,
-                                        TerminationDate,
-                                        Status.Id
-                                    ),
-                                new ContractResponse
-                                    (
-                                        EmployeeId!,
-                                        string.Empty,
-                                        ContractNumber,
-                                        EmployeeType.Id,
-                                        StartDate,
-                                        EndDate,
-                                        Salary,
-                                        null
-                                    ),
-                                _departments, 
-                                Positions, 
-                                _managers, 
-                                _statuses, 
-                                _employeeTypes, 
-                                FilePath,
-                                SaveStatus.Local
-                            )
-                        {
-                            FileBytes = pdfBytes,
-                            FileName = fileName,
-                            ContentType = "application/pdf"
-                        }
-                    );
+                                string.Empty,
+                                EmployeeId!,
+                                Position.Id,
+                                Department.Id,
+                                Manager?.Id,
+                                HireDate,
+                                TerminationDate,
+                                Status.Id
+                            ),
+                        new ContractResponse
+                            (
+                                EmployeeId!,
+                                string.Empty,
+                                ContractNumber,
+                                EmployeeType.Id,
+                                StartDate,
+                                EndDate,
+                                Salary,
+                                null
+                            ),
+                        _departments,
+                        Positions,
+                        _managers,
+                        _statuses,
+                        _employeeTypes,
+                        SaveStatus.Local
+                    )
+                {
+                    FileBytes = pdfBytes,
+                    FileName = fileName,
+                    ContentType = "application/pdf",
+                }
+            );
 
-                //foreach (var item in LocalAssignmentsContracts.Where(x => x.SaveStatus == SaveStatus.Local && x.Position != null))
-                //    MessageBox.Show($"До ClearProperty() - LocalAssignmentsContracts.Position:\nId - {item.Position.Id}\nName - {item.Position.Name}");
-
-                ClearProperty();
-
-                //foreach (var item in LocalAssignmentsContracts.Where(x => x.SaveStatus == SaveStatus.Local && x.Position != null))
-                //    MessageBox.Show($"После ClearProperty() - LocalAssignmentsContracts.Position:\nId - {item.Position.Id}\nName - {item.Position.Name}");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при обработке файла: {ex.Message}", "Ошибка конвертации",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            ClearProperty();
         }
         private bool CanExecute_AddAssignmentContractCommand()
             => Department != null && Position != null &&
@@ -403,6 +441,7 @@ namespace LifeLine.HrPanel.Desktop.ViewModels.Features
             Salary = decimal.Zero;
 
             PendingFilePaths.Clear();
+            SelectedLocalAssignmentContract = null!;
         }
 
         private void UpdateIndexes()
